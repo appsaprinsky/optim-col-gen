@@ -4,18 +4,10 @@
 #include <map>
 #include <algorithm>
 #include <coin/ClpSimplex.hpp>
+#include <fstream>
+using namespace std;
+#include "flight_loader.h"
 
-// Define a structure for a flight leg
-struct FlightLeg {
-    std::string flightNumber;
-    std::string departureCity;
-    std::string arrivalCity;
-    std::string departureTime;
-    std::string departureDate;
-    std::string arrivalTime;
-    std::string arrivalDate;
-    double cost; // Cost of the flight leg
-};
 
 // Define a structure for a trip
 struct Trip {
@@ -115,8 +107,7 @@ public:
         Trip bestTrip;
         double bestReducedCost = 0.0;
 
-        // Heuristic: Find the trip with the most negative reduced cost
-        // For simplicity, we'll use a greedy approach
+        // Heuristic: Find the trip with the most negative reduced cost // For simplicity, we'll use a greedy approach
         for (const auto& flight1 : flights) {
             for (const auto& flight2 : flights) {
                 if (flight1.arrivalCity == flight2.departureCity) {
@@ -151,17 +142,17 @@ private:
     }
 };
 
-// Load flight data from sam.txt
-std::vector<FlightLeg> loadFlights(const std::string& filename) {
-    std::vector<FlightLeg> flights;
-    // Open the file and parse the data
-    // This is a placeholder; implement file parsing logic here
-    return flights;
-}
+// // load flights (sam.txt)
+// std::vector<FlightLeg> loadFlights(const std::string& filename) {
+//     std::vector<FlightLeg> flights = loadFlights(filename);
+//     printFlights(flights);
+//     return flights;
+// }
 
 int main() {
-    // Load flight data from sam.txt
-    std::vector<FlightLeg> flights = loadFlights("sam.txt");
+    // Load flight data from sam.txt    
+    std::vector<FlightLeg> flights = loadFlights("../sam.txt");
+    printFlights(flights);
 
     // Initialize the RMP with a small set of feasible trips
     RestrictedMasterProblem rmp;
@@ -199,3 +190,23 @@ int main() {
 
     return 0;
 }
+
+
+// int main() {
+//     RestrictedMasterProblem rmp;
+
+//     // Add some trips (example data)
+//     rmp.addTrip({{}, 10.0}); // Trip with cost 10
+//     rmp.addTrip({{}, 15.0}); // Trip with cost 15
+
+//     // Solve the RMP
+//     rmp.solve();
+
+//     // Print dual values
+//     const auto& dualValues = rmp.getDualValues();
+//     for (double value : dualValues) {
+//         std::cout << "Dual value: " << value << std::endl;
+//     }
+
+//     return 0;
+// }

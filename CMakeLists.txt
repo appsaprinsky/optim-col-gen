@@ -10,7 +10,7 @@ include_directories(/opt/homebrew/Cellar/coinutils/2.11.12/include/coinutils/coi
 link_directories(/opt/homebrew/lib)
 
 # Define the executable
-add_executable(OptimColGen prod_main.cpp)
+add_executable(OptimColGen prod_main.cpp flight_loader.cpp)
 
 # Link Clp and CoinUtils libraries
 target_link_libraries(OptimColGen Clp CoinUtils)
