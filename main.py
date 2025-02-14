@@ -25,36 +25,34 @@ class RestrictedMasterProblem:
     def __init__(self):
         self.trips = []
         self.dual_values = {}
+        self.city_constraints = {}  # Store city constraints for easy access
 
     def add_trip(self, trip):
-        # Only add trips that start and end at the same base city
-        if trip.legs[0].departure_city == trip.legs[-1].arrival_city:
-            # Avoid adding duplicate trips
-            if trip not in self.trips:
-                self.trips.append(trip)
+        if trip.legs[0].departure_city == trip.legs[-1].arrival_city and trip not in self.trips:
+            self.trips.append(trip)
 
     def solve(self):
-        # Create an LP problem
         prob = LpProblem("RestrictedMasterProblem", LpMinimize)
-
-        # Decision variables: whether to use each trip
         trip_vars = {i: LpVariable(f"trip_{i}", 0, 1, cat="Binary") for i in range(len(self.trips))}
-
-        # Objective function: minimize total cost
         prob += lpSum(trip_vars[i] * self.trips[i].cost for i in range(len(self.trips)))
 
-        # Constraints: satisfy demand for each city
-        # For simplicity, assume each city must be visited exactly once
-        # (This is a placeholder; you need to define the exact constraints)
-        for city in set(f.departure_city for f in airline_flights):
-            prob += lpSum(trip_vars[i] for i, trip in enumerate(self.trips) if city in [leg.departure_city for leg in trip.legs]) >= 1
+        self.city_constraints = {}  # Clear existing constraints
 
-        # Solve the LP problem
+        for city in set(f.departure_city for f in airline_flights):
+            constraint_name = f"constraint_{city}"
+            # Create the constraint expression first
+            constraint_expression = lpSum(trip_vars[i] for i, trip in enumerate(self.trips) if any(leg.departure_city == city for leg in trip.legs)) >= 1
+            # Add the constraint to the problem with a name
+            prob.addConstraint(constraint_expression, constraint_name)  # Correct way to add and name
+            self.city_constraints[city] = prob.constraints[constraint_name] # Access using name
+
         prob.solve(COIN_CMD(path="/opt/homebrew/bin/cbc"))
 
-        # Retrieve dual values
-        self.dual_values = {city: prob.constraints[f"constraint_{city}"].pi for city in set(f.departure_city for f in airline_flights)}
-
+        if prob.status == 1:  # Optimal
+            self.dual_values = {city: self.city_constraints[city].pi for city in set(f.departure_city for f in airline_flights)}
+        else:
+            print(f"RMP Infeasible or other issue: Status = {prob.status}")
+            self.dual_values = {}
     def get_dual_values(self):
         return self.dual_values
 
@@ -127,6 +125,11 @@ airline_flights = [
 
 def main():
     rmp = RestrictedMasterProblem()
+    # Add an initial feasible trip to start the process.  Crucially important!
+    initial_trip = Trip([airline_flights[0], airline_flights[1], airline_flights[2]], airline_flights[0].cost + airline_flights[1].cost + airline_flights[2].cost, "A")
+    rmp.add_trip(initial_trip) # Example - you'll need to create a valid initial trip for your data
+    # or you can add all single leg trips that start and end in the same city.
+
     max_iterations = 10
     tolerance = 1e-6
     iteration = 0
@@ -134,6 +137,10 @@ def main():
     while iteration < max_iterations:
         rmp.solve()
         dual_values = rmp.get_dual_values()
+
+        if not dual_values:  # Check if dual values are available (RMP might be infeasible)
+            print("No dual values available. Stopping.")
+            break
 
         for base in set(f.departure_city for f in airline_flights):
             pp = PricingProblem(airline_flights, dual_values, base)
@@ -149,6 +156,7 @@ def main():
     print("Optimal trips found!")
     for trip in rmp.trips:
         print(trip)
+
 
 if __name__ == "__main__":
     main()
