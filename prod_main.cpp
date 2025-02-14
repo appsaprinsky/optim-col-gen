@@ -9,42 +9,37 @@ using namespace std;
 #include "flight_loader.h"
 
 
-// Define a structure for a trip
 struct Trip {
     std::vector<FlightLeg> legs;
-    double cost; // Total cost of the trip
+    double cost;
+    std::string base;
 };
 
-// Restricted Master Problem (RMP)
 class RestrictedMasterProblem {
     private:
-        std::vector<Trip> trips; // Current set of trips (columns)
-        std::vector<double> dualValues; // Dual values from the RMP
+        std::vector<Trip> trips;
+        std::vector<double> dualValues;
+        std::vector<FlightLeg> flights;
     
     public:
+        RestrictedMasterProblem(const std::vector<FlightLeg>& flights) : flights(flights) {}
+    
         void solve() {
             ClpSimplex model;
-    
-            // Set up the problem
             int numCols = trips.size(); // Number of variables (one per trip)
-            int numRows = 2; // Number of constraints (one per city)
-    
-            // Column bounds (all variables >= 0)
+            int numRows = flights.size(); // Number of constraints (one per flight leg)
             std::vector<double> colLower(numCols, 0.0);
-            std::vector<double> colUpper(numCols, COIN_DBL_MAX);
-    
+            std::vector<double> colUpper(numCols, COIN_DBL_MAX); 
             // Objective coefficients (minimize total cost)
             std::vector<double> objCoeffs;
             for (const auto& trip : trips) {
                 objCoeffs.push_back(trip.cost);
             }
     
-            // Row bounds (demand constraints)
-            std::vector<double> rowLower = {5.0, 7.0}; // Example demands
-            std::vector<double> rowUpper = {COIN_DBL_MAX, COIN_DBL_MAX};
-    
+            // Row bounds (each flight leg must be covered exactly once)
+            std::vector<double> rowLower(numRows, 1.0);
+            std::vector<double> rowUpper(numRows, 1.0);
             // Define the constraint matrix
-            // For simplicity, assume each trip contributes to both constraints
             std::vector<CoinBigIndex> start(numCols + 1); // Start of each column
             std::vector<int> index; // Row indices of non-zero elements
             std::vector<double> value; // Values of non-zero elements
@@ -52,13 +47,13 @@ class RestrictedMasterProblem {
             int nonZeroCount = 0;
             for (int col = 0; col < numCols; ++col) {
                 start[col] = nonZeroCount;
-                index.push_back(0); // Trip contributes to the first constraint
-                value.push_back(1.0); // Coefficient for the first constraint
-                nonZeroCount++;
-    
-                index.push_back(1); // Trip contributes to the second constraint
-                value.push_back(1.0); // Coefficient for the second constraint
-                nonZeroCount++;
+                for (size_t row = 0; row < flights.size(); ++row) {
+                    if (std::find(trips[col].legs.begin(), trips[col].legs.end(), flights[row]) != trips[col].legs.end()) {
+                        index.push_back(row);
+                        value.push_back(1.0);
+                        nonZeroCount++;
+                    }
+                }
             }
             start[numCols] = nonZeroCount; // End marker
     
@@ -69,11 +64,7 @@ class RestrictedMasterProblem {
                 colLower.data(), colUpper.data(),
                 objCoeffs.data(), rowLower.data(), rowUpper.data()
             );
-    
-            // Solve the LP problem
             model.primal();
-    
-            // Retrieve dual values
             dualValues.resize(model.numberRows());
             for (int i = 0; i < model.numberRows(); ++i) {
                 dualValues[i] = model.dualRowSolution()[i];
@@ -95,118 +86,129 @@ class RestrictedMasterProblem {
 
 // Pricing Problem (PP)
 class PricingProblem {
-private:
-    std::vector<FlightLeg> flights; // List of all flights
-    std::vector<double> dualValues; // Dual values from the RMP
-
-public:
-    PricingProblem(const std::vector<FlightLeg>& flights, const std::vector<double>& dualValues)
-        : flights(flights), dualValues(dualValues) {}
-
-    Trip solve() {
-        Trip bestTrip;
-        double bestReducedCost = 0.0;
-
-        // Heuristic: Find the trip with the most negative reduced cost // For simplicity, we'll use a greedy approach
-        for (const auto& flight1 : flights) {
-            for (const auto& flight2 : flights) {
-                if (flight1.arrivalCity == flight2.departureCity) {
-                    for (const auto& flight3 : flights) {
-                        if (flight2.arrivalCity == flight3.departureCity && flight3.arrivalCity == flight1.departureCity) {
-                            // Check if the trip is valid (e.g., respects duty time constraints)
-                            double reducedCost = calculateReducedCost({flight1, flight2, flight3});
-                            if (reducedCost < bestReducedCost) {
-                                bestReducedCost = reducedCost;
-                                bestTrip = {{flight1, flight2, flight3}, flight1.cost + flight2.cost + flight3.cost};
-                            }
-                        }
+    private:
+        std::vector<FlightLeg> flights; // List of all flights
+        std::vector<double> dualValues; // Dual values from the RMP
+        std::string base; // Base city for the trip
+    
+    public:
+        PricingProblem(const std::vector<FlightLeg>& flights, const std::vector<double>& dualValues, const std::string& base)
+            : flights(flights), dualValues(dualValues), base(base) {}
+    
+        Trip solve() {
+            Trip bestTrip;
+            double bestReducedCost = 0.0;
+    
+            // Iterate over all flights that start at the base
+            for (const auto& startFlight : flights) {
+                if (startFlight.departureCity == base) {
+                    // Initialize a trip starting with this flight
+                    Trip currentTrip;
+                    currentTrip.legs.push_back(startFlight);
+                    currentTrip.cost = startFlight.cost;
+                    currentTrip.base = base;
+    
+                    // Recursively extend the trip
+                    extendTrip(currentTrip, bestTrip, bestReducedCost);
+                }
+            }
+    
+            return bestTrip;
+        }
+    
+        double calculateReducedCost(const std::vector<FlightLeg>& legs) const {
+            double cost = 0.0;
+            for (const auto& leg : legs) {
+                cost += leg.cost;
+            }
+    
+            // Subtract dual values based on how the trip contributes to the constraints
+            // For example, if the RMP has constraints for each flight leg, count how many legs are covered
+            for (size_t i = 0; i < dualValues.size(); ++i) {
+                cost -= dualValues[i]; // Adjust this logic based on your actual constraints
+            }
+    
+            return cost;
+        }
+    
+    private:
+        void extendTrip(Trip& currentTrip, Trip& bestTrip, double& bestReducedCost) {
+            // Check if the current trip is valid (ends at the base)
+            if (currentTrip.legs.back().arrivalCity == base) {
+                double reducedCost = calculateReducedCost(currentTrip.legs);
+                if (reducedCost < bestReducedCost) {
+                    bestReducedCost = reducedCost;
+                    bestTrip = currentTrip;
+                }
+            }
+    
+            // Try to extend the trip by adding more legs
+            for (const auto& nextFlight : flights) {
+                if (currentTrip.legs.back().arrivalCity == nextFlight.departureCity) {
+                    // Check if adding this flight would exceed constraints (e.g., duty time)
+                    if (isValidExtension(currentTrip, nextFlight)) {
+                        Trip extendedTrip = currentTrip;
+                        extendedTrip.legs.push_back(nextFlight);
+                        extendedTrip.cost += nextFlight.cost;
+    
+                        // Recursively extend the trip
+                        extendTrip(extendedTrip, bestTrip, bestReducedCost);
                     }
                 }
             }
         }
-
-        return bestTrip;
-    }
-
-private:
-    double calculateReducedCost(const std::vector<FlightLeg>& legs) const {
-        double cost = 0.0;
-        for (const auto& leg : legs) {
-            cost += leg.cost;
+    
+        bool isValidExtension(const Trip& trip, const FlightLeg& nextFlight) {
+            // Add logic to check constraints (e.g., duty time, layover time)
+            // For now, assume all extensions are valid
+            return true;
         }
-        // Subtract dual values (this is a placeholder; you need to define the exact formula)
-        for (size_t i = 0; i < dualValues.size(); ++i) {
-            cost -= dualValues[i]; // Example reduction
+    };
+
+
+
+    int main() {
+        std::vector<FlightLeg> flights = loadFlights("../sam.txt");
+        printFlights(flights);
+    
+        RestrictedMasterProblem rmp(flights);
+    
+        // Add initial trips to the RMP (e.g., single-leg trips)
+        for (const auto& flight : flights) {
+            rmp.addTrip({{flight}, flight.cost, flight.departureCity});
         }
-        return cost;
-    }
-};
-
-// // load flights (sam.txt)
-// std::vector<FlightLeg> loadFlights(const std::string& filename) {
-//     std::vector<FlightLeg> flights = loadFlights(filename);
-//     printFlights(flights);
-//     return flights;
-// }
-
-int main() {
-    // Load flight data from sam.txt    
-    std::vector<FlightLeg> flights = loadFlights("../sam.txt");
-    printFlights(flights);
-
-    // Initialize the RMP with a small set of feasible trips
-    RestrictedMasterProblem rmp;
-    // Add initial trips to rmp (this is a placeholder; implement logic to generate initial trips)
-    rmp.addTrip({{flights[0], flights[1], flights[2]}, flights[0].cost + flights[1].cost + flights[2].cost});
-
-    // Column Generation Loop
-    while (true) {
-        // Solve the RMP
-        rmp.solve();
-
-        // Get dual values from the RMP
-        const auto& dualValues = rmp.getDualValues();
-
-        // Solve the Pricing Problem
-        PricingProblem pp(flights, dualValues);
-        Trip newTrip = pp.solve();
-
-        // Check if the new trip has a negative reduced cost
-        if (newTrip.cost < 0) {
-            rmp.addTrip(newTrip);
-        } else {
-            break; // No more improving columns
+    
+        // Column Generation Loop
+        const double tolerance = 1e-6;
+        int maxIterations = 100;
+        int iteration = 0;
+    
+        while (iteration < maxIterations) {
+            rmp.solve();
+            const auto& dualValues = rmp.getDualValues();
+    
+            // Solve the Pricing Problem for each base
+            for (const auto& base : {"A", "B", "C"}) { // Adjust based on your bases
+                PricingProblem pp(flights, dualValues, base);
+                Trip newTrip = pp.solve();
+    
+                // Calculate reduced cost for the new trip
+                double reducedCost = pp.calculateReducedCost(newTrip.legs);
+                if (reducedCost < -tolerance) {
+                    rmp.addTrip(newTrip);
+                }
+            }
+    
+            iteration++;
         }
-    }
-
-    // Output the final solution
-    std::cout << "Optimal trips found!" << std::endl;
-    for (const auto& trip : rmp.getTrips()) {
-        std::cout << "Trip cost: " << trip.cost << std::endl;
-        for (const auto& leg : trip.legs) {
-            std::cout << leg.departureCity << " -> " << leg.arrivalCity << " (" << leg.flightNumber << ")" << std::endl;
+    
+        std::cout << "Optimal trips found!" << std::endl;
+        for (const auto& trip : rmp.getTrips()) {
+            std::cout << "Trip cost: " << trip.cost << std::endl;
+            for (const auto& leg : trip.legs) {
+                std::cout << leg.departureCity << " -> " << leg.arrivalCity << " (" << leg.flightNumber << ")" << std::endl;
+            }
         }
+    
+        return 0;
     }
-
-    return 0;
-}
-
-
-// int main() {
-//     RestrictedMasterProblem rmp;
-
-//     // Add some trips (example data)
-//     rmp.addTrip({{}, 10.0}); // Trip with cost 10
-//     rmp.addTrip({{}, 15.0}); // Trip with cost 15
-
-//     // Solve the RMP
-//     rmp.solve();
-
-//     // Print dual values
-//     const auto& dualValues = rmp.getDualValues();
-//     for (double value : dualValues) {
-//         std::cout << "Dual value: " << value << std::endl;
-//     }
-
-//     return 0;
-// }

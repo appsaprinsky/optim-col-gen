@@ -13,6 +13,10 @@ struct FlightLeg {
     std::string arrivalTime;
     std::string arrivalDate;
     double cost;
+
+    bool operator==(const FlightLeg& other) const {
+        return flightNumber == other.flightNumber;
+    }
 };
 
 std::vector<FlightLeg> loadFlights(const std::string& filename);
