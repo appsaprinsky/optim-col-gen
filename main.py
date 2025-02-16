@@ -73,6 +73,10 @@ class PricingProblem:
     def calculate_reduced_cost(self, legs, existing_trip_cost=0):
         # Reduced cost = total cost - sum of dual values for visited cities - existing_trip_cost
         return sum(f.cost for f in legs) - sum(self.dual_values.get(f.departure_city, 0) for f in legs) - existing_trip_cost
+    
+    def calculate_reduced_cost_EXTERNAL(self, legs, existing_trip_cost):
+        # Reduced cost = total cost - sum of dual values for visited cities - existing_trip_cost
+        return existing_trip_cost- sum(self.dual_values.get(f.departure_city, 0) for f in legs)
 
     def extend_trip(self, current_trip, best_trip, best_reduced_cost, depth=0, max_depth=5):
         if depth >= max_depth:
@@ -119,7 +123,7 @@ class PricingProblem:
 airline_flights = [
     Flight("A", "B", 100, "FL1"),
     Flight("D", "C", 150, "FL2"),
-    Flight("B", "C", 150, "FL9"),
+    Flight("B", "C", 150, "FL10"),
     Flight("C", "A", 200, "FL3"),
     Flight("C", "A", 50, "FL9"),
     Flight("A", "C", 180, "FL4"),
@@ -128,6 +132,40 @@ airline_flights = [
     Flight("G", "A", 180, "FL7"),
     Flight("C", "A", 50, "FL8"),
 ]
+def process_trips(global_solution_trip, flights_in_the_new_trip):
+    valid_trips = []
+    for trip_coll in global_solution_trip:
+        if any(legg.flight_id in flights_in_the_new_trip for legg in trip_coll.legs):
+            valid_trips.append(trip_coll)
+            flight_ids = [legg.flight_id for legg in trip_coll.legs]  # trip_coll is defined in the loop
+    return valid_trips
+
+def basic_trip_solution_with_DH(LIST_airline_flights):
+    LIST_output_trips = []
+    for i in range(len(LIST_airline_flights)):
+        loop_flight = LIST_airline_flights[i]
+        loop_flight_dh = Flight(loop_flight.arrival_city, loop_flight.departure_city, 1000, loop_flight.flight_id+'_DH')
+        initial_trip = Trip([loop_flight, loop_flight_dh ], loop_flight.cost +loop_flight_dh.cost, 'T_' +str(i))
+        LIST_output_trips.append(initial_trip)    
+    return LIST_output_trips
+# def list_of_uncovered_trips(l):
+
+def find_flights_by_id(flights, flight_id):
+    return [flight for flight in flights if flight.flight_id == flight_id]
+
+def calculate_total_cost_of_flights(flights):
+    if not flights:
+        return 0
+    if not all(isinstance(flight, Flight) for flight in flights): # Check if all elements are Flight objects
+        return "Error: All items in the list must be Flight objects."
+    return sum(flight.cost for flight in flights)
+
+def calculate_total_trip_cost(trips):
+    if not trips:
+        return 0
+    if not all(isinstance(trip, Trip) for trip in trips):
+        return "Error: All items in the list must be Trip objects."
+    return sum(trip.cost for trip in trips)
 
 def main():
     rmp = RestrictedMasterProblem()
@@ -169,8 +207,22 @@ def main():
                 # generate them solutions with Deadhead
                 # calculate the cost of new trips  - cost of old trips and assign them value of ==as existing trp cost
                 # Delete the old trips and add new trips in the solutions of global solution and restricted master problem
-                affected_trips_in_OG = []
-                reduced_cost = pp.calculate_reduced_cost(new_trip.legs, existing_trip_cost=new_trip.cost)
+                
+                affected_trips_in_OG = process_trips(global_solution_trip, flights_in_the_new_trip)
+                list_of_uncovered_trips = []
+                for tripp in affected_trips_in_OG:
+                    for legg in tripp.legs:
+                        if (legg.flight_id not in flights_in_the_new_trip) and (legg.flight_id[-2:] != 'DH'):
+                            list_of_uncovered_trips.append(find_flights_by_id(airline_flights, legg.flight_id))
+                
+                rest_of_trips_solution = basic_trip_solution_with_DH(list_of_uncovered_trips)
+
+                existing_trip_cost= calculate_total_cost_of_flights(rest_of_trips_solution) + calculate_total_trip_cost([new_trip]) - calculate_total_trip_cost(affected_trips_in_OG)
+
+                reduced_cost = pp.calculate_reduced_cost_EXTERNAL(new_trip.legs, existing_trip_cost)
+                print(f'!@!@!@!@!@!@!@!@!@!@!@!@!@{flights_in_the_new_trip}')
+                print(f'!@!@!@!@!@!@!@!@!@!@!@!@!@{affected_trips_in_OG}')
+                print(f'!@!@!@!@!@!@!@!@!@!@!@!@!@{existing_trip_cost}')
                 print(reduced_cost)
                 print(-tolerance)
                 if reduced_cost < -tolerance:
