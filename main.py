@@ -7,6 +7,9 @@ class Flight:
         self.cost = cost
         self.flight_id = flight_id
 
+    def __repr__(self):
+        return f"{self.departure_city} -> {self.arrival_city} ({self.flight_id}, Cost: {self.cost})"
+
 class Trip:
     def __init__(self, legs, cost, base):
         self.legs = legs  # List of Flight objects
@@ -40,11 +43,11 @@ class RestrictedMasterProblem:
 
         for city in set(f.departure_city for f in airline_flights):
             constraint_name = f"constraint_{city}"
-            # Create the constraint expression first
+            # Create the constraint expression
             constraint_expression = lpSum(trip_vars[i] for i, trip in enumerate(self.trips) if any(leg.departure_city == city for leg in trip.legs)) >= 1
             # Add the constraint to the problem with a name
-            prob.addConstraint(constraint_expression, constraint_name)  # Correct way to add and name
-            self.city_constraints[city] = prob.constraints[constraint_name] # Access using name
+            prob.addConstraint(constraint_expression, constraint_name)
+            self.city_constraints[city] = prob.constraints[constraint_name]  # Access using name
 
         prob.solve(COIN_CMD(path="/opt/homebrew/bin/cbc"))
 
@@ -53,6 +56,7 @@ class RestrictedMasterProblem:
         else:
             print(f"RMP Infeasible or other issue: Status = {prob.status}")
             self.dual_values = {}
+
     def get_dual_values(self):
         return self.dual_values
 
@@ -66,9 +70,9 @@ class PricingProblem:
         # Ensure the new leg is not already in the trip
         return new_leg not in trip.legs
 
-    def calculate_reduced_cost(self, legs):
-        # Reduced cost = total cost - sum of dual values for visited cities
-        return sum(f.cost for f in legs) - sum(self.dual_values.get(f.departure_city, 0) for f in legs)
+    def calculate_reduced_cost(self, legs, existing_trip_cost=0):
+        # Reduced cost = total cost - sum of dual values for visited cities - existing_trip_cost
+        return sum(f.cost for f in legs) - sum(self.dual_values.get(f.departure_city, 0) for f in legs) - existing_trip_cost
 
     def extend_trip(self, current_trip, best_trip, best_reduced_cost, depth=0, max_depth=5):
         if depth >= max_depth:
@@ -114,8 +118,10 @@ class PricingProblem:
 # Sample Flights
 airline_flights = [
     Flight("A", "B", 100, "FL1"),
-    Flight("B", "C", 150, "FL2"),
+    Flight("D", "C", 150, "FL2"),
+    Flight("B", "C", 150, "FL9"),
     Flight("C", "A", 200, "FL3"),
+    Flight("C", "A", 50, "FL9"),
     Flight("A", "C", 180, "FL4"),
     Flight("C", "F", 150, "FL5"),
     Flight("F", "G", 200, "FL6"),
@@ -125,18 +131,24 @@ airline_flights = [
 
 def main():
     rmp = RestrictedMasterProblem()
+    global_solution_trip = []
     # Add an initial feasible trip to start the process.  Crucially important!
-    initial_trip = Trip([airline_flights[0], airline_flights[1], airline_flights[2]], airline_flights[0].cost + airline_flights[1].cost + airline_flights[2].cost, "A")
-    rmp.add_trip(initial_trip) # Example - you'll need to create a valid initial trip for your data
-    # or you can add all single leg trips that start and end in the same city.
+    for i in range(len(airline_flights)):
+        loop_flight = airline_flights[i]
+        loop_flight_dh = Flight(loop_flight.arrival_city, loop_flight.departure_city, 1000, loop_flight.flight_id+'_DH')
+        initial_trip = Trip([loop_flight, loop_flight_dh ], loop_flight.cost +loop_flight_dh.cost, 'T_' +str(i))
+        rmp.add_trip(initial_trip)
+        global_solution_trip.append(initial_trip)
 
-    max_iterations = 10
+
+    max_iterations = 100
     tolerance = 1e-6
     iteration = 0
 
     while iteration < max_iterations:
         rmp.solve()
         dual_values = rmp.get_dual_values()
+        print(f'Dual Values: {dual_values}')
 
         if not dual_values:  # Check if dual values are available (RMP might be infeasible)
             print("No dual values available. Stopping.")
@@ -147,7 +159,20 @@ def main():
             new_trip = pp.solve()
 
             if new_trip and len(new_trip.legs) > 1:
-                reduced_cost = pp.calculate_reduced_cost(new_trip.legs)
+                print(f'New Trip: {new_trip.legs}')
+
+                # search for trips that are affected
+                flights_in_the_new_trip = [legg.flight_id for legg in new_trip.legs]
+                #  Next steps:
+                # Finding trips that will be affected by a new solution
+                # identify what flights will be uncovered (ignoring DH)
+                # generate them solutions with Deadhead
+                # calculate the cost of new trips  - cost of old trips and assign them value of ==as existing trp cost
+                # Delete the old trips and add new trips in the solutions of global solution and restricted master problem
+                affected_trips_in_OG = []
+                reduced_cost = pp.calculate_reduced_cost(new_trip.legs, existing_trip_cost=new_trip.cost)
+                print(reduced_cost)
+                print(-tolerance)
                 if reduced_cost < -tolerance:
                     rmp.add_trip(new_trip)
 
