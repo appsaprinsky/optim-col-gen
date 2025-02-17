@@ -28,11 +28,15 @@ class RestrictedMasterProblem:
     def __init__(self):
         self.trips = []
         self.dual_values = {}
-        self.city_constraints = {}  # Store city constraints for easy access
+        self.city_constraints = {}
 
     def add_trip(self, trip):
         if trip.legs[0].departure_city == trip.legs[-1].arrival_city and trip not in self.trips:
             self.trips.append(trip)
+
+    def remove_trip(self, trip):
+        if trip in self.trips:
+            self.trips.remove(trip)
 
     def solve(self):
         prob = LpProblem("RestrictedMasterProblem", LpMinimize)
@@ -148,10 +152,13 @@ def basic_trip_solution_with_DH(LIST_airline_flights):
         initial_trip = Trip([loop_flight, loop_flight_dh ], loop_flight.cost +loop_flight_dh.cost, 'T_' +str(i))
         LIST_output_trips.append(initial_trip)    
     return LIST_output_trips
-# def list_of_uncovered_trips(l):
 
 def find_flights_by_id(flights, flight_id):
-    return [flight for flight in flights if flight.flight_id == flight_id]
+    flight_out = None
+    for flight in flights: 
+        if flight.flight_id == flight_id:
+            flight_out = flight
+    return flight_out
 
 def calculate_total_cost_of_flights(flights):
     if not flights:
@@ -198,16 +205,7 @@ def main():
 
             if new_trip and len(new_trip.legs) > 1:
                 print(f'New Trip: {new_trip.legs}')
-
-                # search for trips that are affected
-                flights_in_the_new_trip = [legg.flight_id for legg in new_trip.legs]
-                #  Next steps:
-                # Finding trips that will be affected by a new solution
-                # identify what flights will be uncovered (ignoring DH)
-                # generate them solutions with Deadhead
-                # calculate the cost of new trips  - cost of old trips and assign them value of ==as existing trp cost
-                # Delete the old trips and add new trips in the solutions of global solution and restricted master problem
-                
+                flights_in_the_new_trip = [legg.flight_id for legg in new_trip.legs]                
                 affected_trips_in_OG = process_trips(global_solution_trip, flights_in_the_new_trip)
                 list_of_uncovered_trips = []
                 for tripp in affected_trips_in_OG:
@@ -216,24 +214,24 @@ def main():
                             list_of_uncovered_trips.append(find_flights_by_id(airline_flights, legg.flight_id))
                 
                 rest_of_trips_solution = basic_trip_solution_with_DH(list_of_uncovered_trips)
-
-                existing_trip_cost= calculate_total_cost_of_flights(rest_of_trips_solution) + calculate_total_trip_cost([new_trip]) - calculate_total_trip_cost(affected_trips_in_OG)
-
+                existing_trip_cost= calculate_total_trip_cost(rest_of_trips_solution) + calculate_total_trip_cost([new_trip]) - calculate_total_trip_cost(affected_trips_in_OG)
                 reduced_cost = pp.calculate_reduced_cost_EXTERNAL(new_trip.legs, existing_trip_cost)
-                print(f'!@!@!@!@!@!@!@!@!@!@!@!@!@{flights_in_the_new_trip}')
-                print(f'!@!@!@!@!@!@!@!@!@!@!@!@!@{affected_trips_in_OG}')
-                print(f'!@!@!@!@!@!@!@!@!@!@!@!@!@{existing_trip_cost}')
                 print(reduced_cost)
                 print(-tolerance)
                 if reduced_cost < -tolerance:
                     rmp.add_trip(new_trip)
+                    global_solution_trip.append(new_trip)
+                    for tripp in affected_trips_in_OG:
+                        global_solution_trip.remove(tripp)
+                        rmp.remove_trip(tripp)
 
         iteration += 1
 
     print("Optimal trips found!")
-    for trip in rmp.trips:
+    # for trip in rmp.trips:
+    #     print(trip)
+    for trip in global_solution_trip:
         print(trip)
-
 
 if __name__ == "__main__":
     main()
