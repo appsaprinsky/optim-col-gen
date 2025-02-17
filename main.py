@@ -1,14 +1,17 @@
 from pulp import LpProblem, LpVariable, LpMinimize, lpSum, value, COIN_CMD
+from datetime import datetime, timedelta
 
 class Flight:
-    def __init__(self, departure_city, arrival_city, cost, flight_id):
+    def __init__(self, departure_city, arrival_city, cost, flight_id, departure_time, arrival_time):
         self.departure_city = departure_city
         self.arrival_city = arrival_city
         self.cost = cost
         self.flight_id = flight_id
+        self.departure_time = datetime.strptime(departure_time, "%d-%m-%Y %H:%M:%S")
+        self.arrival_time = datetime.strptime(arrival_time, "%d-%m-%Y %H:%M:%S")
 
     def __repr__(self):
-        return f"{self.departure_city} -> {self.arrival_city} ({self.flight_id}, Cost: {self.cost})"
+        return f"{self.departure_city} -> {self.arrival_city} ({self.flight_id}, Cost: {self.cost}, Dep: {self.departure_time}, Arr: {self.arrival_time})"
 
 class Trip:
     def __init__(self, legs, cost, base):
@@ -23,6 +26,19 @@ class Trip:
     def __eq__(self, other):
         # Compare trips based on their legs
         return isinstance(other, Trip) and self.legs == other.legs
+
+    def can_add_flight(self, new_flight):
+        if not self.legs:
+            return True
+        last_flight = self.legs[-1]
+        # Ensure the new flight departs after the last flight arrives and there's at least 2 hours difference
+        time_difference = (new_flight.departure_time - last_flight.arrival_time).total_seconds() / 3600
+        return new_flight.departure_time >= last_flight.arrival_time and time_difference >= 2
+
+    def total_duration(self):
+        if not self.legs:
+            return timedelta(0)
+        return self.legs[-1].arrival_time - self.legs[0].departure_time
 
 class RestrictedMasterProblem:
     def __init__(self):
@@ -71,8 +87,8 @@ class PricingProblem:
         self.base = base
 
     def is_valid_extension(self, trip, new_leg):
-        # Ensure the new leg is not already in the trip
-        return new_leg not in trip.legs
+        # Ensure the new leg is not already in the trip and respects time constraints
+        return new_leg not in trip.legs and trip.can_add_flight(new_leg)
 
     def calculate_reduced_cost(self, legs, existing_trip_cost=0):
         # Reduced cost = total cost - sum of dual values for visited cities - existing_trip_cost
@@ -80,17 +96,18 @@ class PricingProblem:
     
     def calculate_reduced_cost_EXTERNAL(self, legs, existing_trip_cost):
         # Reduced cost = total cost - sum of dual values for visited cities - existing_trip_cost
-        return existing_trip_cost- sum(self.dual_values.get(f.departure_city, 0) for f in legs)
+        return existing_trip_cost - sum(self.dual_values.get(f.departure_city, 0) for f in legs)
 
     def extend_trip(self, current_trip, best_trip, best_reduced_cost, depth=0, max_depth=5):
         if depth >= max_depth:
             return best_trip, best_reduced_cost
 
-        # Check if the trip is complete (returns to the base)
+        # Check if the trip is complete (returns to the base) and does not exceed 6 days
         if current_trip.legs[-1].arrival_city == self.base:
-            reduced_cost = self.calculate_reduced_cost(current_trip.legs)
-            if reduced_cost < best_reduced_cost:
-                return current_trip, reduced_cost
+            if current_trip.total_duration() <= timedelta(days=6):
+                reduced_cost = self.calculate_reduced_cost(current_trip.legs)
+                if reduced_cost < best_reduced_cost:
+                    return current_trip, reduced_cost
 
         # Explore all possible extensions
         for next_flight in self.flights:
@@ -122,19 +139,20 @@ class PricingProblem:
         if best_trip:
             print(f"Best trip found: {[(leg.departure_city, leg.arrival_city, leg.flight_id) for leg in best_trip.legs]}")
         return best_trip
-
+# Sample Flights
 # Sample Flights
 airline_flights = [
-    Flight("A", "B", 100, "FL1"),
-    Flight("D", "C", 150, "FL2"),
-    Flight("B", "C", 150, "FL10"),
-    Flight("C", "A", 200, "FL3"),
-    Flight("C", "A", 50, "FL9"),
-    Flight("A", "C", 180, "FL4"),
-    Flight("C", "F", 150, "FL5"),
-    Flight("F", "G", 200, "FL6"),
-    Flight("G", "A", 180, "FL7"),
-    Flight("C", "A", 50, "FL8"),
+    Flight("A", "B", 100, "FL1", "01-01-2025 05:45:00", "01-01-2025 07:00:00"),
+    Flight("D", "C", 150, "FL2", "01-01-2025 08:00:00", "01-01-2025 10:00:00"),
+    Flight("B", "C", 150, "FL10", "01-01-2025 09:30:00", "01-01-2025 11:00:00"),
+    Flight("C", "A", 200, "FL3", "01-01-2025 14:00:00", "01-01-2025 17:00:00"),
+    Flight("C", "A", 50, "FL9", "01-01-2025 15:00:00", "01-01-2025 17:00:00"),
+    Flight("A", "C", 180, "FL4", "01-01-2025 18:00:00", "01-01-2025 20:00:00"),
+    Flight("C", "F", 150, "FL5", "01-01-2025 21:00:00", "01-01-2025 23:00:00"),
+    Flight("F", "G", 200, "FL6", "02-01-2025 01:00:00", "02-01-2025 03:00:00"),
+    Flight("G", "A", 180, "FL7", "02-01-2025 05:00:00", "02-01-2025 07:00:00"),
+    Flight("C", "A", 50, "FL8", "02-01-2025 09:00:00", "02-01-2025 11:00:00"),
+    Flight("A", "C", 50, "FL11", "02-01-2025 17:00:00", "02-01-2025 19:00:00"),
 ]
 def process_trips(global_solution_trip, flights_in_the_new_trip):
     valid_trips = []
@@ -148,9 +166,24 @@ def basic_trip_solution_with_DH(LIST_airline_flights):
     LIST_output_trips = []
     for i in range(len(LIST_airline_flights)):
         loop_flight = LIST_airline_flights[i]
-        loop_flight_dh = Flight(loop_flight.arrival_city, loop_flight.departure_city, 1000, loop_flight.flight_id+'_DH')
-        initial_trip = Trip([loop_flight, loop_flight_dh ], loop_flight.cost +loop_flight_dh.cost, 'T_' +str(i))
-        LIST_output_trips.append(initial_trip)    
+        dh_departure_time = loop_flight.arrival_time + timedelta(hours=5)
+        flight_duration = loop_flight.arrival_time - loop_flight.departure_time
+        dh_arrival_time = dh_departure_time + flight_duration
+        loop_flight_dh = Flight(
+            loop_flight.arrival_city, 
+            loop_flight.departure_city, 
+            10000, 
+            loop_flight.flight_id + '_DH',
+            dh_departure_time.strftime("%d-%m-%Y %H:%M:%S"),
+            dh_arrival_time.strftime("%d-%m-%Y %H:%M:%S")
+        )
+        initial_trip = Trip(
+            [loop_flight, loop_flight_dh], 
+            loop_flight.cost + loop_flight_dh.cost, 
+            'T_' + str(i)
+        )
+        LIST_output_trips.append(initial_trip)
+    
     return LIST_output_trips
 
 def find_flights_by_id(flights, flight_id):
@@ -177,14 +210,13 @@ def calculate_total_trip_cost(trips):
 def main():
     rmp = RestrictedMasterProblem()
     global_solution_trip = []
-    # Add an initial feasible trip to start the process.  Crucially important!
+    # Add an initial feasible trip to start the process. Crucially important!
     for i in range(len(airline_flights)):
         loop_flight = airline_flights[i]
-        loop_flight_dh = Flight(loop_flight.arrival_city, loop_flight.departure_city, 1000, loop_flight.flight_id+'_DH')
-        initial_trip = Trip([loop_flight, loop_flight_dh ], loop_flight.cost +loop_flight_dh.cost, 'T_' +str(i))
+        loop_flight_dh = Flight(loop_flight.arrival_city, loop_flight.departure_city, 1000, loop_flight.flight_id+'_DH', loop_flight.arrival_time.strftime("%d-%m-%Y %H:%M:%S"), loop_flight.departure_time.strftime("%d-%m-%Y %H:%M:%S"))
+        initial_trip = Trip([loop_flight, loop_flight_dh], loop_flight.cost + loop_flight_dh.cost, 'T_' + str(i))
         rmp.add_trip(initial_trip)
         global_solution_trip.append(initial_trip)
-
 
     max_iterations = 100
     tolerance = 1e-6
@@ -228,8 +260,6 @@ def main():
         iteration += 1
 
     print("Optimal trips found!")
-    # for trip in rmp.trips:
-    #     print(trip)
     for trip in global_solution_trip:
         print(trip)
 
