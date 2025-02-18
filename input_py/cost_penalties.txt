@@ -1,1 +1,3 @@
 Deadhead,1000
+FlightCost,10
+SpecificFlightCost,0 
