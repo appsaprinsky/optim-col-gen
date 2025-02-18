@@ -1,44 +1,8 @@
-from pulp import LpProblem, LpVariable, LpMinimize, lpSum, value, COIN_CMD
-from datetime import datetime, timedelta
-
-class Flight:
-    def __init__(self, departure_city, arrival_city, cost, flight_id, departure_time, arrival_time):
-        self.departure_city = departure_city
-        self.arrival_city = arrival_city
-        self.cost = cost
-        self.flight_id = flight_id
-        self.departure_time = datetime.strptime(departure_time, "%d-%m-%Y %H:%M:%S")
-        self.arrival_time = datetime.strptime(arrival_time, "%d-%m-%Y %H:%M:%S")
-
-    def __repr__(self):
-        return f"{self.departure_city} -> {self.arrival_city} ({self.flight_id}, Cost: {self.cost}, Dep: {self.departure_time}, Arr: {self.arrival_time})"
-
-class Trip:
-    def __init__(self, legs, cost, base):
-        self.legs = legs  # List of Flight objects
-        self.cost = cost
-        self.base = base
-
-    def __repr__(self):
-        route = " -> ".join(f"{leg.departure_city} -> {leg.arrival_city} ({leg.flight_id})" for leg in self.legs)
-        return f"Trip cost: {self.cost}\n{route}"
-
-    def __eq__(self, other):
-        # Compare trips based on their legs
-        return isinstance(other, Trip) and self.legs == other.legs
-
-    def can_add_flight(self, new_flight):
-        if not self.legs:
-            return True
-        last_flight = self.legs[-1]
-        # Ensure the new flight departs after the last flight arrives and there's at least 2 hours difference
-        time_difference = (new_flight.departure_time - last_flight.arrival_time).total_seconds() / 3600
-        return new_flight.departure_time >= last_flight.arrival_time and time_difference >= 2
-
-    def total_duration(self):
-        if not self.legs:
-            return timedelta(0)
-        return self.legs[-1].arrival_time - self.legs[0].departure_time
+from pulp import LpProblem, LpVariable, LpMinimize, lpSum, COIN_CMD
+from datetime import timedelta
+from functions_py.Flight_gl import *
+from functions_py.Trip_gl import *
+from functions_py.schedule_reader import *
 
 class RestrictedMasterProblem:
     def __init__(self):
@@ -139,21 +103,8 @@ class PricingProblem:
         if best_trip:
             print(f"Best trip found: {[(leg.departure_city, leg.arrival_city, leg.flight_id) for leg in best_trip.legs]}")
         return best_trip
-# Sample Flights
-# Sample Flights
-airline_flights = [
-    Flight("A", "B", 100, "FL1", "01-01-2025 05:45:00", "01-01-2025 07:00:00"),
-    Flight("D", "C", 150, "FL2", "01-01-2025 08:00:00", "01-01-2025 10:00:00"),
-    Flight("B", "C", 150, "FL10", "01-01-2025 09:30:00", "01-01-2025 11:00:00"),
-    Flight("C", "A", 200, "FL3", "01-01-2025 14:00:00", "01-01-2025 17:00:00"),
-    Flight("C", "A", 50, "FL9", "01-01-2025 15:00:00", "01-01-2025 17:00:00"),
-    Flight("A", "C", 180, "FL4", "01-01-2025 18:00:00", "01-01-2025 20:00:00"),
-    Flight("C", "F", 150, "FL5", "01-01-2025 21:00:00", "01-01-2025 23:00:00"),
-    Flight("F", "G", 200, "FL6", "02-01-2025 01:00:00", "02-01-2025 03:00:00"),
-    Flight("G", "A", 180, "FL7", "02-01-2025 05:00:00", "02-01-2025 07:00:00"),
-    Flight("C", "A", 50, "FL8", "02-01-2025 09:00:00", "02-01-2025 11:00:00"),
-    Flight("A", "C", 50, "FL11", "02-01-2025 17:00:00", "02-01-2025 19:00:00"),
-]
+
+airline_flights = read_flights_from_file('input_py/sam_py.txt')
 def process_trips(global_solution_trip, flights_in_the_new_trip):
     valid_trips = []
     for trip_coll in global_solution_trip:
