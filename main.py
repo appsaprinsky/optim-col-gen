@@ -5,70 +5,9 @@ from functions_py.Trip_gl import *
 from functions_py.schedule_reader import *
 import random
 from functions_py.RestrictedMasterProblem_gl import *
-
-class PricingProblem:
-    def __init__(self, flights, dual_values, base):
-        self.flights = flights
-        self.dual_values = dual_values
-        self.base = base
-
-    def is_valid_extension(self, trip, new_leg):
-        # Ensure the new leg is not already in the trip and respects time constraints
-        return new_leg not in trip.legs and trip.can_add_flight(new_leg)
-
-    def calculate_reduced_cost(self, legs):
-        # Reduced cost = total cost - sum of dual values for visited cities
-        return sum(f.cost for f in legs) - sum(self.dual_values.get(f.departure_city, 0) for f in legs)
-
-    def calculate_reduced_cost_EXTERNAL(self, legs, existing_trip_cost):
-        # Reduced cost = total cost - sum of dual values for visited cities - existing_trip_cost
-        return existing_trip_cost - sum(self.dual_values.get(f.departure_city, 0) for f in legs)
-
-    def generate_all_trips(self, current_trip, all_trips, max_depth=10):
-        # Base case: if the trip returns to the base and is within 6 days, add it to the list
-        if current_trip.legs[-1].arrival_city == self.base:
-            if current_trip.total_duration() <= timedelta(days=6):
-                all_trips.append(current_trip)
-            return
-
-        # Base case: if max depth is reached, stop exploring
-        if len(current_trip.legs) >= max_depth:
-            return
-
-        # Explore all possible extensions
-        for next_flight in self.flights:
-            if current_trip.legs[-1].arrival_city == next_flight.departure_city:
-                if self.is_valid_extension(current_trip, next_flight):
-                    extended_trip = Trip(
-                        current_trip.legs + [next_flight],
-                        current_trip.cost + next_flight.cost,
-                        self.base,
-                    )
-                    self.generate_all_trips(extended_trip, all_trips, max_depth)
-
-    def solve(self):
-        all_trips = []  # Store all legal trips
-        best_trip = None
-        best_reduced_cost = float("inf")
-
-        # Start with all flights departing from the base
-        start_flights = [f for f in self.flights if f.departure_city == self.base]
-        for start_flight in start_flights:
-            current_trip = Trip([start_flight], start_flight.cost, self.base)
-            self.generate_all_trips(current_trip, all_trips)
-
-        print(all_trips)
-        # Evaluate all generated trips and select the best one
-        for trip in all_trips:
-            reduced_cost = self.calculate_reduced_cost(trip.legs)
-            if reduced_cost < best_reduced_cost:
-                best_trip = trip
-                best_reduced_cost = reduced_cost
-
-        print(f"Best reduced cost for base {self.base}: {best_reduced_cost}")
-        if best_trip:
-            print(f"Best trip found: {[(leg.departure_city, leg.arrival_city, leg.flight_id) for leg in best_trip.legs]}")
-        return best_trip
+from functions_py.PricingProblem_gl import *
+from functions_py.CostPenalty_gl import *
+from functions_py.LegalityChecker_gl import *
 
 airline_flights = read_flights_from_file('input_py/sam_py.txt')
 
@@ -77,7 +16,7 @@ def process_trips(global_solution_trip, flights_in_the_new_trip):
     for trip_coll in global_solution_trip:
         if any(legg.flight_id in flights_in_the_new_trip for legg in trip_coll.legs):
             valid_trips.append(trip_coll)
-            flight_ids = [legg.flight_id for legg in trip_coll.legs]  # trip_coll is defined in the loop
+            flight_ids = [legg.flight_id for legg in trip_coll.legs]
     return valid_trips
 
 def basic_trip_solution_with_DH(LIST_airline_flights):
@@ -126,17 +65,21 @@ def calculate_total_trip_cost(trips):
     return sum(trip.cost for trip in trips)
 
 def main():
+    pc = CostsPenalties('input_py/cost_penalties.txt')
+    print(pc.deadhead_cost)
     rmp = RestrictedMasterProblem()
     global_solution_trip = []
-    # Add an initial feasible trip to start the process. Crucially important!
+    # initial feasible trip
     for i in range(len(airline_flights)):
         loop_flight = airline_flights[i]
-        loop_flight_dh = Flight(loop_flight.arrival_city, loop_flight.departure_city, 1000, loop_flight.flight_id+'_DH', loop_flight.arrival_time.strftime("%d-%m-%Y %H:%M:%S"), loop_flight.departure_time.strftime("%d-%m-%Y %H:%M:%S"))
+        loop_flight_dh = Flight(loop_flight.arrival_city, loop_flight.departure_city, pc.deadhead_cost, loop_flight.flight_id+'_DH', loop_flight.arrival_time.strftime("%d-%m-%Y %H:%M:%S"), loop_flight.departure_time.strftime("%d-%m-%Y %H:%M:%S"))
         initial_trip = Trip([loop_flight, loop_flight_dh], loop_flight.cost + loop_flight_dh.cost, 'T_' + str(i))
+        lc = IsLegal(loop_flight.departure_city)
+        print(lc.is_trip_legal(initial_trip))
         rmp.add_trip(initial_trip)
         global_solution_trip.append(initial_trip)
 
-    max_iterations = 1000
+    max_iterations = 1
     tolerance = 1e-6
     iteration = 0
 
@@ -145,7 +88,7 @@ def main():
         dual_values = rmp.get_dual_values()
         print(f'Dual Values: {dual_values}')
 
-        if not dual_values:  # Check if dual values are available (RMP might be infeasible)
+        if not dual_values:
             print("No dual values available. Stopping.")
             break
 
