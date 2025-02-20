@@ -66,20 +66,22 @@ def calculate_total_trip_cost(trips):
 
 def main():
     pc = CostsPenalties('input_py/cost_penalties.txt')
-    print(pc.deadhead_cost)
     rmp = RestrictedMasterProblem()
     global_solution_trip = []
     # initial feasible trip
     for i in range(len(airline_flights)):
         loop_flight = airline_flights[i]
-        loop_flight_dh = Flight(loop_flight.arrival_city, loop_flight.departure_city, pc.deadhead_cost, loop_flight.flight_id+'_DH', loop_flight.arrival_time.strftime("%d-%m-%Y %H:%M:%S"), loop_flight.departure_time.strftime("%d-%m-%Y %H:%M:%S"))
+        dh_departure_time = loop_flight.arrival_time + timedelta(hours=5)
+        flight_duration = loop_flight.arrival_time - loop_flight.departure_time
+        dh_arrival_time = dh_departure_time + flight_duration
+        loop_flight_dh = Flight(loop_flight.arrival_city, loop_flight.departure_city, pc.get_deadhead_cost(), loop_flight.flight_id+'_DH', dh_departure_time.strftime("%d-%m-%Y %H:%M:%S"), dh_arrival_time.strftime("%d-%m-%Y %H:%M:%S"))
         initial_trip = Trip([loop_flight, loop_flight_dh], loop_flight.cost + loop_flight_dh.cost, 'T_' + str(i))
         lc = IsLegal(loop_flight.departure_city)
-        print(lc.is_trip_legal(initial_trip))
+        lc.is_trip_legal(initial_trip)
         rmp.add_trip(initial_trip)
         global_solution_trip.append(initial_trip)
 
-    max_iterations = 1
+    max_iterations = 10
     tolerance = 1e-6
     iteration = 0
 
@@ -119,6 +121,10 @@ def main():
                         rmp.remove_trip(tripp)
 
         iteration += 1
+        dual_values = rmp.get_dual_values()
+        print(f'Iteration {iteration} completed.')
+        print('-----------------------------------')
+        print(f'Dual Values: {dual_values}')
 
     print("Optimal trips found!")
     for trip in global_solution_trip:

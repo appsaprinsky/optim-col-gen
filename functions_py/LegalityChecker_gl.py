@@ -13,7 +13,6 @@ class IsLegal:
         for i in range(len(flights) - 1):
             current_flight = flights[i]
             next_flight = flights[i + 1]
-
             # Check if the next flight departs after the current flight arrives
             if next_flight.departure_time < current_flight.arrival_time:
                 return False
@@ -58,6 +57,7 @@ class IsLegal:
         Check if a trip is legal based on all constraints.
         """
         flights = trip.legs
+        # print(flights)
 
         # Check all constraints
         return (

@@ -13,6 +13,7 @@ def read_flights_from_file(filename):
                 try:
                     cost = int(cost)  # Convert cost to integer
                     flight = Flight(departure_city, arrival_city, cost, flight_id, departure_time, arrival_time)
+                    print(flight)
                     flights.append(flight)
                     tem_id += 1
                 except ValueError:
