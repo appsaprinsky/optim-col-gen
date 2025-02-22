@@ -1,9 +1,7 @@
-from pulp import LpProblem, LpVariable, LpMinimize, lpSum, COIN_CMD
 from datetime import timedelta
 from functions_py.Flight_gl import *
 from functions_py.Trip_gl import *
 from functions_py.schedule_reader import *
-import random
 from functions_py.RestrictedMasterProblem_gl import *
 from functions_py.PricingProblem_gl import *
 from functions_py.CostPenalty_gl import *
@@ -56,31 +54,6 @@ def calculate_total_cost_of_flights(flights):
         return "Error: All items in the list must be Flight objects."
     return sum(flight.cost for flight in flights)
 
-
-    
-# def generate_all_trips_Initial_Solution(current_trip, all_trips, flights, base, max_depth=10):
-#     def is_valid_extension(trip, new_leg):
-#         # Ensure the new leg is not already in the trip and respects time constraints
-#         return new_leg not in trip.legs and trip.can_add_flight(new_leg)
-#     if current_trip.legs[-1].arrival_city == base:
-#         if current_trip.total_duration() <= timedelta(days=6):
-#             all_trips.append(current_trip)
-#         return
-#     # Base case: if max depth is reached, stop exploring
-#     if len(current_trip.legs) >= max_depth:
-#         return
-#     # Explore all possible extensions
-#     for next_flight in flights:
-#         if current_trip.legs[-1].arrival_city == next_flight.departure_city:
-#             if is_valid_extension(current_trip, next_flight):
-#                 extended_trip = Trip(
-#                     current_trip.legs + [next_flight],
-#                     current_trip.cost + next_flight.cost,
-#                     base,
-#                 )
-#                 generate_all_trips_Initial_Solution(extended_trip, all_trips, flights, max_depth)
-
-
 def calculate_total_trip_cost(trips):
     if not trips:
         return 0
@@ -88,98 +61,23 @@ def calculate_total_trip_cost(trips):
         return "Error: All items in the list must be Trip objects."
     return sum(trip.cost for trip in trips)
 
-
-
-def generate_initial_solution(airline_flights, pc, rmp, global_solution_trip):
-    assigned_flights = set()
-    trips = []
-    
+def trips_Initial_Solution(airline_flights, rmp, pc):
+    global_solution_trip = []
     for i in range(len(airline_flights)):
-        if airline_flights[i] in assigned_flights:
-            continue
-        
         loop_flight = airline_flights[i]
-        trip_flights = [loop_flight]
-        assigned_flights.add(loop_flight)
-        
-        # Try to extend the trip with connecting flights
-        for j in range(len(airline_flights)):
-            if i == j or airline_flights[j] in assigned_flights:
-                continue
-            
-            candidate_flight = airline_flights[j]
-            
-            # Check if the flights can be linked directly
-            if loop_flight.arrival_city == candidate_flight.departure_city \
-                    and loop_flight.arrival_time <= candidate_flight.departure_time:
-                trip_flights.append(candidate_flight)
-                assigned_flights.add(candidate_flight)
-                loop_flight = candidate_flight
-                
-        # If no connection is found and DH is required
-        if len(trip_flights) == 1:
-            dh_departure_time = loop_flight.arrival_time + timedelta(hours=5)
-            flight_duration = loop_flight.arrival_time - loop_flight.departure_time
-            dh_arrival_time = dh_departure_time + flight_duration
-            loop_flight_dh = Flight(
-                loop_flight.arrival_city, loop_flight.departure_city, 
-                pc.get_deadhead_cost(), loop_flight.flight_id+'_DH', 
-                dh_departure_time.strftime("%d-%m-%Y %H:%M:%S"),
-                dh_arrival_time.strftime("%d-%m-%Y %H:%M:%S")
-            )
-            trip_flights.append(loop_flight_dh)
-        
-        trip_cost = sum(f.cost for f in trip_flights)
-        initial_trip = Trip(trip_flights, trip_cost, 'T_' + str(i))
-        
-        # lc = is_legal_func(loop_flight.departure_city)
-        # lc.is_trip_legal(initial_trip)
+        dh_departure_time = loop_flight.arrival_time + timedelta(hours=5)
+        flight_duration = loop_flight.arrival_time - loop_flight.departure_time
+        dh_arrival_time = dh_departure_time + flight_duration
+        loop_flight_dh = Flight(loop_flight.arrival_city, loop_flight.departure_city, pc.get_deadhead_cost(), loop_flight.flight_id+'_DH', dh_departure_time.strftime("%d-%m-%Y %H:%M:%S"), dh_arrival_time.strftime("%d-%m-%Y %H:%M:%S"))
+        initial_trip = Trip([loop_flight, loop_flight_dh], loop_flight.cost + loop_flight_dh.cost, 'T_' + str(i))
+        lc = IsLegal(loop_flight.departure_city)
+        lc.is_trip_legal(initial_trip)
         rmp.add_trip(initial_trip)
         global_solution_trip.append(initial_trip)
-        
-    return trips
+    return global_solution_trip, rmp
 
-
-def main():
-    pc = CostsPenalties('input_py/cost_penalties.txt')
-    airline_flights = read_flights_from_file('input_py/sam_py.txt', cost_class=pc)
-    rmp = RestrictedMasterProblem()
-    global_solution_trip = []
-    # initial feasible trip
-
-    # flights_to_cover = airline_flights.copy()
-    # flights_impossible_to_cover = []
-
-    # while len(flights_to_cover)!=0:
-    #     flight_curr = flights_to_cover[0]
-    #     trip_curr = Trip([flight_curr], flight_curr.cost, 'U_')
-    #     generate_all_trips_Initial_Solution(current_trip, all_trips, flights_to_cover, flight_curr.base, max_depth=10)
-        
-
-
-    # for i in range(len(airline_flights)):
-    #     loop_flight = airline_flights[i]
-    #     dh_departure_time = loop_flight.arrival_time + timedelta(hours=5)
-    #     flight_duration = loop_flight.arrival_time - loop_flight.departure_time
-    #     dh_arrival_time = dh_departure_time + flight_duration
-    #     loop_flight_dh = Flight(loop_flight.arrival_city, loop_flight.departure_city, pc.get_deadhead_cost(), loop_flight.flight_id+'_DH', dh_departure_time.strftime("%d-%m-%Y %H:%M:%S"), dh_arrival_time.strftime("%d-%m-%Y %H:%M:%S"))
-    #     initial_trip = Trip([loop_flight, loop_flight_dh], loop_flight.cost + loop_flight_dh.cost, 'T_' + str(i))
-    #     lc = IsLegal(loop_flight.departure_city)
-    #     lc.is_trip_legal(initial_trip)
-    #     rmp.add_trip(initial_trip)
-    #     global_solution_trip.append(initial_trip)
-
-# trying to avoid all the DH flights
-    # trips_with_DH_to_clean = []
-    # for trip in global_solution_trip:
-    #     if any(leg.flight_id[-2:] == 'DH' for leg in trip.legs):
-    #         trips_with_DH_to_clean.append(trip) 
-
-
-
-    generate_initial_solution(airline_flights, pc, rmp, global_solution_trip)
-
-    max_iterations = 20
+def solve_Column_Generation(airline_flights, rmp, pc, global_solution_trip):
+    max_iterations = 100
     tolerance = 1e-6
     iteration = 0
 
@@ -227,6 +125,15 @@ def main():
     print("Optimal trips found!")
     for trip in global_solution_trip:
         print(trip)
+
+    return global_solution_trip, rmp
+
+def main():
+    pc = CostsPenalties('input_py/cost_penalties.txt')
+    airline_flights = read_flights_from_file('input_py/sam_py.txt', cost_class=pc)
+    rmp = RestrictedMasterProblem()
+    global_solution_trip, rmp = trips_Initial_Solution(airline_flights, rmp, pc)
+    global_solution_trip, rmp = solve_Column_Generation(airline_flights, rmp, pc, global_solution_trip)
 
 if __name__ == "__main__":
     main()
