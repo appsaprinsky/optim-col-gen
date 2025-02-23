@@ -61,6 +61,26 @@ def calculate_total_trip_cost(trips):
         return "Error: All items in the list must be Trip objects."
     return sum(trip.cost for trip in trips)
 
+def find_trips_with_DH(trips):
+    trips_with_DH = []
+    trips_without_DH = []
+    for trip in trips:
+        if any(leg.flight_id.endswith('_DH') for leg in trip.legs):
+            trips_with_DH.append(trip)
+        else:
+            trips_without_DH.append(trip)
+    return trips_without_DH, trips_with_DH
+
+def remove_DH_flights_from_trips_and_generate_flight_list(trips):
+    flights_without_DH = []
+    
+    for trip in trips:
+        for leg in trip.legs:
+            if not leg.flight_id.endswith('_DH'):  # Check if the flight is not a DH flight
+                flights_without_DH.append(leg)
+    
+    return flights_without_DH
+
 def trips_Initial_Solution(airline_flights, rmp, pc):
     global_solution_trip = []
     for i in range(len(airline_flights)):
@@ -77,7 +97,7 @@ def trips_Initial_Solution(airline_flights, rmp, pc):
     return global_solution_trip, rmp
 
 def solve_Column_Generation(airline_flights, rmp, pc, global_solution_trip):
-    max_iterations = 100
+    max_iterations = 1
     tolerance = 1e-6
     iteration = 0
 
@@ -116,6 +136,11 @@ def solve_Column_Generation(airline_flights, rmp, pc, global_solution_trip):
                         global_solution_trip.remove(tripp)
                         rmp.remove_trip(tripp)
 
+                    if len(rest_of_trips_solution) > 0:
+                        for tripp in rest_of_trips_solution:
+                            global_solution_trip.append(tripp)
+                            rmp.add_trip(tripp)
+
         iteration += 1
         dual_values = rmp.get_dual_values()
         print(f'Iteration {iteration} completed.')
@@ -132,8 +157,27 @@ def main():
     pc = CostsPenalties('input_py/cost_penalties.txt')
     airline_flights = read_flights_from_file('input_py/sam_py.txt', cost_class=pc)
     rmp = RestrictedMasterProblem()
+
+
     global_solution_trip, rmp = trips_Initial_Solution(airline_flights, rmp, pc)
     global_solution_trip, rmp = solve_Column_Generation(airline_flights, rmp, pc, global_solution_trip)
+    # After first check, we might still have trips with DH. We need to focus only on those
+    global_solution_trip, rest_of_trips = find_trips_with_DH(global_solution_trip)
+    print('--------------------------------------------------------------------------------------------------------------------------------')
+    if len(rest_of_trips) > 0:
+        print("Trips with DH found.")
+        rmp1 = RestrictedMasterProblem()
+        for tr in rest_of_trips:
+            rmp1.add_trip(tr)
+        airline_flights1 = remove_DH_flights_from_trips_and_generate_flight_list(rest_of_trips)
+        rest_of_trips, rmp1 = solve_Column_Generation(airline_flights1, rmp1, pc, rest_of_trips)
+        final_solution = [x for n in (global_solution_trip,rest_of_trips) for x in n]
+    print('--------------------------------------------------------------------------------------------------------------------------------')
+    for trip in final_solution:
+        print(trip)
+
+
+
 
 if __name__ == "__main__":
     main()
