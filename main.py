@@ -16,7 +16,7 @@ def process_trips(global_solution_trip, flights_in_the_new_trip):
             flight_ids = [legg.flight_id for legg in trip_coll.legs]
     return valid_trips
 
-def basic_trip_solution_with_DH(LIST_airline_flights):
+def basic_trip_solution_with_UDH(LIST_airline_flights, pc):
     LIST_output_trips = []
     for i in range(len(LIST_airline_flights)):
         loop_flight = LIST_airline_flights[i]
@@ -26,8 +26,8 @@ def basic_trip_solution_with_DH(LIST_airline_flights):
         loop_flight_dh = Flight(
             loop_flight.arrival_city, 
             loop_flight.departure_city, 
-            10000, 
-            loop_flight.flight_id + '_DH',
+            pc.get_uncovered_deadhead_cost(), 
+            loop_flight.flight_id + '_UDH',
             dh_departure_time.strftime("%d-%m-%Y %H:%M:%S"),
             dh_arrival_time.strftime("%d-%m-%Y %H:%M:%S")
         )
@@ -71,6 +71,16 @@ def find_trips_with_DH(trips):
             trips_without_DH.append(trip)
     return trips_without_DH, trips_with_DH
 
+def find_trips_with_UDH(trips):
+    trips_with_UDH = []
+    trips_without_UDH = []
+    for trip in trips:
+        if any(leg.flight_id.endswith('_UDH') for leg in trip.legs):
+            trips_with_UDH.append(trip)
+        else:
+            trips_without_UDH.append(trip)
+    return trips_without_UDH, trips_with_UDH
+
 def remove_DH_flights_from_trips_and_generate_flight_list(trips):
     flights_without_DH = []
     
@@ -81,6 +91,16 @@ def remove_DH_flights_from_trips_and_generate_flight_list(trips):
     
     return flights_without_DH
 
+def remove_UDH_flights_from_trips_and_generate_flight_list(trips):
+    flights_without_UDH = []
+    
+    for trip in trips:
+        for leg in trip.legs:
+            if not leg.flight_id.endswith('_UDH'):  # Check if the flight is not a DH flight
+                flights_without_UDH.append(leg)
+    
+    return flights_without_UDH
+
 def trips_Initial_Solution(airline_flights, rmp, pc):
     global_solution_trip = []
     for i in range(len(airline_flights)):
@@ -88,7 +108,7 @@ def trips_Initial_Solution(airline_flights, rmp, pc):
         dh_departure_time = loop_flight.arrival_time + timedelta(hours=5)
         flight_duration = loop_flight.arrival_time - loop_flight.departure_time
         dh_arrival_time = dh_departure_time + flight_duration
-        loop_flight_dh = Flight(loop_flight.arrival_city, loop_flight.departure_city, pc.get_deadhead_cost(), loop_flight.flight_id+'_DH', dh_departure_time.strftime("%d-%m-%Y %H:%M:%S"), dh_arrival_time.strftime("%d-%m-%Y %H:%M:%S"))
+        loop_flight_dh = Flight(loop_flight.arrival_city, loop_flight.departure_city, pc.get_uncovered_deadhead_cost(), loop_flight.flight_id+'_UDH', dh_departure_time.strftime("%d-%m-%Y %H:%M:%S"), dh_arrival_time.strftime("%d-%m-%Y %H:%M:%S"))
         initial_trip = Trip([loop_flight, loop_flight_dh], loop_flight.cost + loop_flight_dh.cost, 'T_' + str(i))
         lc = IsLegal(loop_flight.departure_city)
         lc.is_trip_legal(initial_trip)
@@ -99,6 +119,7 @@ def trips_Initial_Solution(airline_flights, rmp, pc):
 def write_timetable_to_file(Globe_solution, output_file_path):
     with open(output_file_path, 'w') as file:
         file.write("Timetable of Solutions:\n")
+        file.write(f"Length:{len(Globe_solution)}\n")
         file.write("=" * 40 + "\n")
         i = 1
         for trip in Globe_solution:
@@ -119,7 +140,7 @@ def write_timetable_to_file(Globe_solution, output_file_path):
     print(f"Timetable written to {output_file_path}")
 
 def solve_Column_Generation(airline_flights, rmp, pc, global_solution_trip):
-    max_iterations = 1
+    max_iterations = 50
     tolerance = 1e-6
     iteration = 0
 
@@ -133,6 +154,8 @@ def solve_Column_Generation(airline_flights, rmp, pc, global_solution_trip):
             break
 
         for base in set(f.departure_city for f in airline_flights):
+            if not is_base_is_legal(base):
+                continue
             pp = PricingProblem(airline_flights, dual_values, base)
             new_trip = pp.solve()
 
@@ -143,10 +166,9 @@ def solve_Column_Generation(airline_flights, rmp, pc, global_solution_trip):
                 list_of_uncovered_trips = []
                 for tripp in affected_trips_in_OG:
                     for legg in tripp.legs:
-                        if (legg.flight_id not in flights_in_the_new_trip) and (legg.flight_id[-2:] != 'DH'):
+                        if (legg.flight_id not in flights_in_the_new_trip) and (legg.flight_id[-3:] != 'UDH'):
                             list_of_uncovered_trips.append(find_flights_by_id(airline_flights, legg.flight_id))
-                
-                rest_of_trips_solution = basic_trip_solution_with_DH(list_of_uncovered_trips)
+                rest_of_trips_solution = basic_trip_solution_with_UDH(list_of_uncovered_trips, pc)
                 existing_trip_cost= calculate_total_trip_cost(rest_of_trips_solution) + calculate_total_trip_cost([new_trip]) - calculate_total_trip_cost(affected_trips_in_OG)
                 reduced_cost = pp.calculate_reduced_cost_EXTERNAL(new_trip.legs, existing_trip_cost)
                 print(reduced_cost)
@@ -181,19 +203,19 @@ def main():
     airline_flights_copy = read_flights_from_file('input_py/sam_py.txt', cost_class=pc)
     rmp = RestrictedMasterProblem()
     global_solution_trip, rmp = trips_Initial_Solution(airline_flights, rmp, pc)
-    monitor1, _ = find_trips_with_DH(global_solution_trip)
+    monitor1, _ = find_trips_with_UDH(global_solution_trip)
     Globe_iter = 0
     Globe_solution = []
     rest_of_trips = []
-    while len(monitor1) > 0 or Globe_iter < 100:
+    while len(monitor1) > 0 or Globe_iter < 10:
         Globe_iter += 1
 
         global_solution_trip, rmp = solve_Column_Generation(airline_flights, rmp, pc, global_solution_trip)
-        solution_trip, rest_of_trips = find_trips_with_DH(global_solution_trip)
+        solution_trip, rest_of_trips = find_trips_with_UDH(global_solution_trip)
         for trip in solution_trip:
             Globe_solution.append(trip)
             global_solution_trip.remove(trip)
-        airline_flights = remove_DH_flights_from_trips_and_generate_flight_list(rest_of_trips)
+        airline_flights = remove_UDH_flights_from_trips_and_generate_flight_list(rest_of_trips)
         rmp = RestrictedMasterProblem()
         for tr in rest_of_trips:
             rmp.add_trip(tr)

@@ -73,3 +73,14 @@ class IsLegal:
         """
         # Add any specific flight-level checks here if needed
         return True
+    
+
+def is_base_is_legal(base):
+    """
+    Check if a base is legal (e.g.,nly from a valid list).
+    """
+    # Add any specific flight-level checks here if needed
+    if base in ['A', 'B', 'C']:
+        return True
+    else:
+        return False

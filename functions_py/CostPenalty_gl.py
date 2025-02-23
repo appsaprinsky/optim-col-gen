@@ -4,6 +4,7 @@ class CostsPenalties:
         self.deadhead_cost = None
         self.flight_cost = None
         self.specific_flight_cost = None
+        self.uncovered_deadhead_cost = None
         self._read_file()
 
     def _read_file(self):
@@ -16,9 +17,14 @@ class CostsPenalties:
                     self.flight_cost = float(value)
                 elif key == "SpecificFlightCost":
                     self.specific_flight_cost = float(value)
+                elif key == "Uncovered":
+                    self.uncovered_deadhead_cost = float(value)
 
     def get_deadhead_cost(self):
         return self.deadhead_cost
+
+    def get_uncovered_deadhead_cost(self):
+        return self.uncovered_deadhead_cost
 
     def get_flight_cost(self):
         return self.flight_cost

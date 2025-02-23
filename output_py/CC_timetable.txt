@@ -1,7 +1,127 @@
 Timetable of Solutions:
+Length:13
 ========================================
 Trip ID: 1
-Cost: 40
+Cost: 100
+Legs:
+  - Flight ID: FL3
+    Departure: 2025-01-01 09:30:00 from B
+    Arrival: 2025-01-01 11:00:00 in C
+  - Flight ID: FL4
+    Departure: 2025-01-01 14:00:00 from C
+    Arrival: 2025-01-01 17:00:00 in A
+  - Flight ID: FL6
+    Departure: 2025-01-01 22:00:00 from A
+    Arrival: 2025-01-01 23:00:00 in C
+  - Flight ID: FL18
+    Departure: 2025-01-04 01:00:00 from C
+    Arrival: 2025-01-04 03:00:00 in G
+  - Flight ID: FL19
+    Departure: 2025-01-04 05:00:00 from G
+    Arrival: 2025-01-04 07:00:00 in A
+  - Flight ID: FL24
+    Departure: 2025-01-04 20:00:00 from A
+    Arrival: 2025-01-04 22:00:00 in E
+  - Flight ID: FL25
+    Departure: 2025-01-05 01:00:00 from E
+    Arrival: 2025-01-05 03:00:00 in F
+  - Flight ID: FL26
+    Departure: 2025-01-05 05:00:00 from F
+    Arrival: 2025-01-05 07:00:00 in G
+  - Flight ID: FL27
+    Departure: 2025-01-05 09:00:00 from G
+    Arrival: 2025-01-05 11:00:00 in A
+  - Flight ID: FL36
+    Departure: 2025-01-07 05:45:00 from A
+    Arrival: 2025-01-07 07:00:00 in B
+========================================
+Trip ID: 2
+Cost: 60
+Legs:
+  - Flight ID: FL11
+    Departure: 2025-01-02 17:00:00 from A
+    Arrival: 2025-01-02 19:00:00 in C
+  - Flight ID: FL22
+    Departure: 2025-01-04 14:00:00 from C
+    Arrival: 2025-01-04 16:00:00 in D
+  - Flight ID: FL32
+    Departure: 2025-01-06 09:30:00 from D
+    Arrival: 2025-01-06 11:30:00 in E
+  - Flight ID: FL41
+    Departure: 2025-01-07 21:00:00 from E
+    Arrival: 2025-01-07 23:00:00 in F
+  - Flight ID: FL42
+    Departure: 2025-01-08 01:00:00 from F
+    Arrival: 2025-01-08 03:00:00 in G
+  - Flight ID: FL43
+    Departure: 2025-01-08 05:00:00 from G
+    Arrival: 2025-01-08 07:00:00 in A
+========================================
+Trip ID: 3
+Cost: 60
+Legs:
+  - Flight ID: FL13
+    Departure: 2025-01-03 08:30:00 from B
+    Arrival: 2025-01-03 10:00:00 in D
+  - Flight ID: FL23
+    Departure: 2025-01-04 17:30:00 from D
+    Arrival: 2025-01-04 19:30:00 in A
+  - Flight ID: FL31
+    Departure: 2025-01-06 06:00:00 from A
+    Arrival: 2025-01-06 08:00:00 in D
+  - Flight ID: FL39
+    Departure: 2025-01-07 14:30:00 from D
+    Arrival: 2025-01-07 16:30:00 in A
+  - Flight ID: FL44
+    Departure: 2025-01-08 09:00:00 from A
+    Arrival: 2025-01-08 11:00:00 in C
+  - Flight ID: FL45
+    Departure: 2025-01-08 13:30:00 from C
+    Arrival: 2025-01-08 15:00:00 in B
+========================================
+Trip ID: 4
+Cost: 50
+Legs:
+  - Flight ID: FL29
+    Departure: 2025-01-05 16:30:00 from C
+    Arrival: 2025-01-05 18:00:00 in B
+  - Flight ID: FL46
+    Departure: 2025-01-08 16:00:00 from B
+    Arrival: 2025-01-08 18:00:00 in A
+  - Flight ID: FL47
+    Departure: 2025-01-09 06:00:00 from A
+    Arrival: 2025-01-09 08:00:00 in D
+  - Flight ID: FL55
+    Departure: 2025-01-10 14:30:00 from D
+    Arrival: 2025-01-10 16:30:00 in A
+  - Flight ID: FL60
+    Departure: 2025-01-11 09:00:00 from A
+    Arrival: 2025-01-11 11:00:00 in C
+========================================
+Trip ID: 5
+Cost: 60
+Legs:
+  - Flight ID: FL28
+    Departure: 2025-01-05 13:00:00 from A
+    Arrival: 2025-01-05 15:00:00 in C
+  - Flight ID: FL38
+    Departure: 2025-01-07 11:00:00 from C
+    Arrival: 2025-01-07 13:00:00 in D
+  - Flight ID: FL48
+    Departure: 2025-01-09 09:30:00 from D
+    Arrival: 2025-01-09 11:30:00 in E
+  - Flight ID: FL57
+    Departure: 2025-01-10 21:00:00 from E
+    Arrival: 2025-01-10 23:00:00 in F
+  - Flight ID: FL58
+    Departure: 2025-01-11 01:00:00 from F
+    Arrival: 2025-01-11 03:00:00 in G
+  - Flight ID: FL59
+    Departure: 2025-01-11 05:00:00 from G
+    Arrival: 2025-01-11 07:00:00 in A
+========================================
+Trip ID: 6
+Cost: 50
 Legs:
   - Flight ID: FL7
     Departure: 2025-01-01 21:00:00 from C
@@ -12,30 +132,95 @@ Legs:
   - Flight ID: FL9
     Departure: 2025-01-02 05:00:00 from G
     Arrival: 2025-01-02 07:00:00 in A
-  - Flight ID: FL11
-    Departure: 2025-01-02 17:00:00 from A
-    Arrival: 2025-01-02 19:00:00 in C
+  - Flight ID: FL20
+    Departure: 2025-01-04 09:00:00 from A
+    Arrival: 2025-01-04 10:15:00 in B
+  - Flight ID: FL37
+    Departure: 2025-01-07 08:30:00 from B
+    Arrival: 2025-01-07 10:00:00 in C
 ========================================
-Trip ID: 2
+Trip ID: 7
 Cost: 20
 Legs:
-  - Flight ID: FL4
-    Departure: 2025-01-01 14:00:00 from C
-    Arrival: 2025-01-01 17:00:00 in A
-  - Flight ID: FL6
-    Departure: 2025-01-01 22:00:00 from A
-    Arrival: 2025-01-01 23:00:00 in C
+  - Flight ID: FL63
+    Departure: 2025-01-12 06:00:00 from A
+    Arrival: 2025-01-12 08:00:00 in D
+  - Flight ID: FL71
+    Departure: 2025-01-13 14:30:00 from D
+    Arrival: 2025-01-13 16:30:00 in A
 ========================================
-Trip ID: 3
+Trip ID: 8
+Cost: 20
+Legs:
+  - Flight ID: FL61
+    Departure: 2025-01-11 13:30:00 from C
+    Arrival: 2025-01-11 15:00:00 in B
+  - Flight ID: FL69
+    Departure: 2025-01-13 08:30:00 from B
+    Arrival: 2025-01-13 10:00:00 in C
+========================================
+Trip ID: 9
+Cost: 20
+Legs:
+  - Flight ID: FL30
+    Departure: 2025-01-05 19:00:00 from B
+    Arrival: 2025-01-05 21:00:00 in A
+  - Flight ID: FL52
+    Departure: 2025-01-10 05:45:00 from A
+    Arrival: 2025-01-10 07:00:00 in B
+========================================
+Trip ID: 10
+Cost: 60
+Legs:
+  - Flight ID: FL54
+    Departure: 2025-01-10 11:00:00 from C
+    Arrival: 2025-01-10 13:00:00 in D
+  - Flight ID: FL64
+    Departure: 2025-01-12 09:30:00 from D
+    Arrival: 2025-01-12 11:30:00 in E
+  - Flight ID: FL73
+    Departure: 2025-01-13 21:00:00 from E
+    Arrival: 2025-01-13 23:00:00 in F
+  - Flight ID: FL74
+    Departure: 2025-01-14 01:00:00 from F
+    Arrival: 2025-01-14 03:00:00 in G
+  - Flight ID: FL75
+    Departure: 2025-01-14 05:00:00 from G
+    Arrival: 2025-01-14 07:00:00 in A
+  - Flight ID: FL76
+    Departure: 2025-01-14 09:00:00 from A
+    Arrival: 2025-01-14 11:00:00 in C
+========================================
+Trip ID: 11
+Cost: 20
+Legs:
+  - Flight ID: FL53
+    Departure: 2025-01-10 08:30:00 from B
+    Arrival: 2025-01-10 10:00:00 in C
+  - Flight ID: FL77
+    Departure: 2025-01-14 13:30:00 from C
+    Arrival: 2025-01-14 15:00:00 in B
+========================================
+Trip ID: 12
+Cost: 20
+Legs:
+  - Flight ID: FL68
+    Departure: 2025-01-13 05:45:00 from A
+    Arrival: 2025-01-13 07:00:00 in B
+  - Flight ID: FL78
+    Departure: 2025-01-14 16:00:00 from B
+    Arrival: 2025-01-14 18:00:00 in A
+========================================
+Trip ID: 13
 Cost: 30
 Legs:
-  - Flight ID: FL1
-    Departure: 2025-01-01 05:45:00 from A
-    Arrival: 2025-01-01 07:00:00 in B
-  - Flight ID: FL3
-    Departure: 2025-01-01 09:30:00 from B
-    Arrival: 2025-01-01 11:00:00 in C
   - Flight ID: FL5
     Departure: 2025-01-01 19:00:00 from C
     Arrival: 2025-01-01 20:00:00 in A
+  - Flight ID: FL12
+    Departure: 2025-01-03 06:00:00 from A
+    Arrival: 2025-01-03 07:15:00 in B
+  - Flight ID: FL21
+    Departure: 2025-01-04 11:30:00 from B
+    Arrival: 2025-01-04 13:00:00 in C
 ========================================

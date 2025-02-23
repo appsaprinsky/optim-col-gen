@@ -1,22 +1,263 @@
 Timetable of Solutions:
+Length:26
 ========================================
 Trip ID: 1
-Cost: 1010.0
+Cost: 1000010.0
 Legs:
   - Flight ID: FL2
     Departure: 2025-01-01 08:00:00 from D
     Arrival: 2025-01-01 10:00:00 in C
-  - Flight ID: FL2_DH
+  - Flight ID: FL2_UDH
     Departure: 2025-01-01 15:00:00 from C
     Arrival: 2025-01-01 17:00:00 in D
 ========================================
 Trip ID: 2
-Cost: 1010.0
+Cost: 1000010.0
 Legs:
   - Flight ID: FL10
     Departure: 2025-01-02 09:00:00 from C
     Arrival: 2025-01-02 11:00:00 in A
-  - Flight ID: FL10_DH
+  - Flight ID: FL10_UDH
     Departure: 2025-01-02 16:00:00 from A
     Arrival: 2025-01-02 18:00:00 in C
+========================================
+Trip ID: 3
+Cost: 1000010.0
+Legs:
+  - Flight ID: FL14
+    Departure: 2025-01-03 11:00:00 from D
+    Arrival: 2025-01-03 13:00:00 in E
+  - Flight ID: FL14_UDH
+    Departure: 2025-01-03 18:00:00 from E
+    Arrival: 2025-01-03 20:00:00 in D
+========================================
+Trip ID: 4
+Cost: 1000010.0
+Legs:
+  - Flight ID: FL15
+    Departure: 2025-01-03 14:30:00 from E
+    Arrival: 2025-01-03 16:30:00 in A
+  - Flight ID: FL15_UDH
+    Departure: 2025-01-03 21:30:00 from A
+    Arrival: 2025-01-03 23:30:00 in E
+========================================
+Trip ID: 5
+Cost: 1000010.0
+Legs:
+  - Flight ID: FL16
+    Departure: 2025-01-03 18:00:00 from A
+    Arrival: 2025-01-03 20:00:00 in F
+  - Flight ID: FL16_UDH
+    Departure: 2025-01-04 01:00:00 from F
+    Arrival: 2025-01-04 03:00:00 in A
+========================================
+Trip ID: 6
+Cost: 1000010.0
+Legs:
+  - Flight ID: FL17
+    Departure: 2025-01-03 21:00:00 from F
+    Arrival: 2025-01-03 23:00:00 in C
+  - Flight ID: FL17_UDH
+    Departure: 2025-01-04 04:00:00 from C
+    Arrival: 2025-01-04 06:00:00 in F
+========================================
+Trip ID: 7
+Cost: 1000010.0
+Legs:
+  - Flight ID: FL33
+    Departure: 2025-01-06 13:00:00 from E
+    Arrival: 2025-01-06 15:00:00 in F
+  - Flight ID: FL33_UDH
+    Departure: 2025-01-06 20:00:00 from F
+    Arrival: 2025-01-06 22:00:00 in E
+========================================
+Trip ID: 8
+Cost: 1000010.0
+Legs:
+  - Flight ID: FL34
+    Departure: 2025-01-06 16:30:00 from F
+    Arrival: 2025-01-06 18:30:00 in G
+  - Flight ID: FL34_UDH
+    Departure: 2025-01-06 23:30:00 from G
+    Arrival: 2025-01-07 01:30:00 in F
+========================================
+Trip ID: 9
+Cost: 1000010.0
+Legs:
+  - Flight ID: FL35
+    Departure: 2025-01-06 20:00:00 from G
+    Arrival: 2025-01-06 22:00:00 in A
+  - Flight ID: FL35_UDH
+    Departure: 2025-01-07 03:00:00 from A
+    Arrival: 2025-01-07 05:00:00 in G
+========================================
+Trip ID: 10
+Cost: 1000010.0
+Legs:
+  - Flight ID: FL40
+    Departure: 2025-01-07 18:00:00 from A
+    Arrival: 2025-01-07 20:00:00 in E
+  - Flight ID: FL40_UDH
+    Departure: 2025-01-08 01:00:00 from E
+    Arrival: 2025-01-08 03:00:00 in A
+========================================
+Trip ID: 11
+Cost: 1000010.0
+Legs:
+  - Flight ID: FL49
+    Departure: 2025-01-09 13:00:00 from E
+    Arrival: 2025-01-09 15:00:00 in F
+  - Flight ID: FL49_UDH
+    Departure: 2025-01-09 20:00:00 from F
+    Arrival: 2025-01-09 22:00:00 in E
+========================================
+Trip ID: 12
+Cost: 1000010.0
+Legs:
+  - Flight ID: FL50
+    Departure: 2025-01-09 16:30:00 from F
+    Arrival: 2025-01-09 18:30:00 in G
+  - Flight ID: FL50_UDH
+    Departure: 2025-01-09 23:30:00 from G
+    Arrival: 2025-01-10 01:30:00 in F
+========================================
+Trip ID: 13
+Cost: 1000010.0
+Legs:
+  - Flight ID: FL51
+    Departure: 2025-01-09 20:00:00 from G
+    Arrival: 2025-01-09 22:00:00 in A
+  - Flight ID: FL51_UDH
+    Departure: 2025-01-10 03:00:00 from A
+    Arrival: 2025-01-10 05:00:00 in G
+========================================
+Trip ID: 14
+Cost: 1000010.0
+Legs:
+  - Flight ID: FL56
+    Departure: 2025-01-10 18:00:00 from A
+    Arrival: 2025-01-10 20:00:00 in E
+  - Flight ID: FL56_UDH
+    Departure: 2025-01-11 01:00:00 from E
+    Arrival: 2025-01-11 03:00:00 in A
+========================================
+Trip ID: 15
+Cost: 1000010.0
+Legs:
+  - Flight ID: FL65
+    Departure: 2025-01-12 13:00:00 from E
+    Arrival: 2025-01-12 15:00:00 in F
+  - Flight ID: FL65_UDH
+    Departure: 2025-01-12 20:00:00 from F
+    Arrival: 2025-01-12 22:00:00 in E
+========================================
+Trip ID: 16
+Cost: 1000010.0
+Legs:
+  - Flight ID: FL66
+    Departure: 2025-01-12 16:30:00 from F
+    Arrival: 2025-01-12 18:30:00 in G
+  - Flight ID: FL66_UDH
+    Departure: 2025-01-12 23:30:00 from G
+    Arrival: 2025-01-13 01:30:00 in F
+========================================
+Trip ID: 17
+Cost: 1000010.0
+Legs:
+  - Flight ID: FL67
+    Departure: 2025-01-12 20:00:00 from G
+    Arrival: 2025-01-12 22:00:00 in A
+  - Flight ID: FL67_UDH
+    Departure: 2025-01-13 03:00:00 from A
+    Arrival: 2025-01-13 05:00:00 in G
+========================================
+Trip ID: 18
+Cost: 1000010.0
+Legs:
+  - Flight ID: FL70
+    Departure: 2025-01-13 11:00:00 from C
+    Arrival: 2025-01-13 13:00:00 in D
+  - Flight ID: FL70_UDH
+    Departure: 2025-01-13 18:00:00 from D
+    Arrival: 2025-01-13 20:00:00 in C
+========================================
+Trip ID: 19
+Cost: 1000010.0
+Legs:
+  - Flight ID: FL72
+    Departure: 2025-01-13 18:00:00 from A
+    Arrival: 2025-01-13 20:00:00 in E
+  - Flight ID: FL72_UDH
+    Departure: 2025-01-14 01:00:00 from E
+    Arrival: 2025-01-14 03:00:00 in A
+========================================
+Trip ID: 20
+Cost: 1000010.0
+Legs:
+  - Flight ID: FL79
+    Departure: 2025-01-15 06:00:00 from A
+    Arrival: 2025-01-15 08:00:00 in D
+  - Flight ID: FL79_UDH
+    Departure: 2025-01-15 13:00:00 from D
+    Arrival: 2025-01-15 15:00:00 in A
+========================================
+Trip ID: 21
+Cost: 1000010.0
+Legs:
+  - Flight ID: FL80
+    Departure: 2025-01-15 09:30:00 from D
+    Arrival: 2025-01-15 11:30:00 in E
+  - Flight ID: FL80_UDH
+    Departure: 2025-01-15 16:30:00 from E
+    Arrival: 2025-01-15 18:30:00 in D
+========================================
+Trip ID: 22
+Cost: 1000010.0
+Legs:
+  - Flight ID: FL81
+    Departure: 2025-01-15 13:00:00 from E
+    Arrival: 2025-01-15 15:00:00 in F
+  - Flight ID: FL81_UDH
+    Departure: 2025-01-15 20:00:00 from F
+    Arrival: 2025-01-15 22:00:00 in E
+========================================
+Trip ID: 23
+Cost: 1000010.0
+Legs:
+  - Flight ID: FL82
+    Departure: 2025-01-15 16:30:00 from F
+    Arrival: 2025-01-15 18:30:00 in G
+  - Flight ID: FL82_UDH
+    Departure: 2025-01-15 23:30:00 from G
+    Arrival: 2025-01-16 01:30:00 in F
+========================================
+Trip ID: 24
+Cost: 1000010.0
+Legs:
+  - Flight ID: FL83
+    Departure: 2025-01-15 20:00:00 from G
+    Arrival: 2025-01-15 22:00:00 in A
+  - Flight ID: FL83_UDH
+    Departure: 2025-01-16 03:00:00 from A
+    Arrival: 2025-01-16 05:00:00 in G
+========================================
+Trip ID: 25
+Cost: 1000010.0
+Legs:
+  - Flight ID: FL62
+    Departure: 2025-01-11 16:00:00 from B
+    Arrival: 2025-01-11 18:00:00 in A
+  - Flight ID: FL62_UDH
+    Departure: 2025-01-11 23:00:00 from A
+    Arrival: 2025-01-12 01:00:00 in B
+========================================
+Trip ID: 26
+Cost: 1000010.0
+Legs:
+  - Flight ID: FL1
+    Departure: 2025-01-01 05:45:00 from A
+    Arrival: 2025-01-01 07:00:00 in B
+  - Flight ID: FL1_UDH
+    Departure: 2025-01-01 12:00:00 from B
+    Arrival: 2025-01-01 13:15:00 in A
 ========================================
