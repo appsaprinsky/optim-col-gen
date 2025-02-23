@@ -96,6 +96,28 @@ def trips_Initial_Solution(airline_flights, rmp, pc):
         global_solution_trip.append(initial_trip)
     return global_solution_trip, rmp
 
+def write_timetable_to_file(Globe_solution, output_file_path):
+    with open(output_file_path, 'w') as file:
+        file.write("Timetable of Solutions:\n")
+        file.write("=" * 40 + "\n")
+        i = 1
+        for trip in Globe_solution:
+            print(trip)
+            file.write(f"Trip ID: {i}\n")
+            i += 1
+            file.write(f"Cost: {trip.cost}\n")
+            file.write("Legs:\n")
+
+            # Write details of each leg in the trip
+            for leg in trip.legs:
+                file.write(f"  - Flight ID: {leg.flight_id}\n")
+                file.write(f"    Departure: {leg.departure_time} from {leg.departure_city}\n")
+                file.write(f"    Arrival: {leg.arrival_time} in {leg.arrival_city}\n")
+
+            file.write("=" * 40 + "\n")  # Separator between trips
+
+    print(f"Timetable written to {output_file_path}")
+
 def solve_Column_Generation(airline_flights, rmp, pc, global_solution_trip):
     max_iterations = 1
     tolerance = 1e-6
@@ -156,25 +178,30 @@ def solve_Column_Generation(airline_flights, rmp, pc, global_solution_trip):
 def main():
     pc = CostsPenalties('input_py/cost_penalties.txt')
     airline_flights = read_flights_from_file('input_py/sam_py.txt', cost_class=pc)
+    airline_flights_copy = read_flights_from_file('input_py/sam_py.txt', cost_class=pc)
     rmp = RestrictedMasterProblem()
-
-
     global_solution_trip, rmp = trips_Initial_Solution(airline_flights, rmp, pc)
-    global_solution_trip, rmp = solve_Column_Generation(airline_flights, rmp, pc, global_solution_trip)
-    # After first check, we might still have trips with DH. We need to focus only on those
-    global_solution_trip, rest_of_trips = find_trips_with_DH(global_solution_trip)
-    print('--------------------------------------------------------------------------------------------------------------------------------')
-    if len(rest_of_trips) > 0:
-        print("Trips with DH found.")
-        rmp1 = RestrictedMasterProblem()
+    monitor1, _ = find_trips_with_DH(global_solution_trip)
+    Globe_iter = 0
+    Globe_solution = []
+    rest_of_trips = []
+    while len(monitor1) > 0 or Globe_iter < 100:
+        Globe_iter += 1
+
+        global_solution_trip, rmp = solve_Column_Generation(airline_flights, rmp, pc, global_solution_trip)
+        solution_trip, rest_of_trips = find_trips_with_DH(global_solution_trip)
+        for trip in solution_trip:
+            Globe_solution.append(trip)
+            global_solution_trip.remove(trip)
+        airline_flights = remove_DH_flights_from_trips_and_generate_flight_list(rest_of_trips)
+        rmp = RestrictedMasterProblem()
         for tr in rest_of_trips:
-            rmp1.add_trip(tr)
-        airline_flights1 = remove_DH_flights_from_trips_and_generate_flight_list(rest_of_trips)
-        rest_of_trips, rmp1 = solve_Column_Generation(airline_flights1, rmp1, pc, rest_of_trips)
-        final_solution = [x for n in (global_solution_trip,rest_of_trips) for x in n]
-    print('--------------------------------------------------------------------------------------------------------------------------------')
-    for trip in final_solution:
+            rmp.add_trip(tr)
+    for trip in Globe_solution:
         print(trip)
+    write_timetable_to_file(Globe_solution, 'output_py/CC_timetable.txt')
+    if len(rest_of_trips)>0:
+        write_timetable_to_file(rest_of_trips, 'output_py/CC_timetable_UNCOVERED.txt')
 
 
 

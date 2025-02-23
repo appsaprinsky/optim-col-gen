@@ -1,0 +1,41 @@
+Timetable of Solutions:
+========================================
+Trip ID: 1
+Cost: 40
+Legs:
+  - Flight ID: FL7
+    Departure: 2025-01-01 21:00:00 from C
+    Arrival: 2025-01-01 23:00:00 in F
+  - Flight ID: FL8
+    Departure: 2025-01-02 01:00:00 from F
+    Arrival: 2025-01-02 03:00:00 in G
+  - Flight ID: FL9
+    Departure: 2025-01-02 05:00:00 from G
+    Arrival: 2025-01-02 07:00:00 in A
+  - Flight ID: FL11
+    Departure: 2025-01-02 17:00:00 from A
+    Arrival: 2025-01-02 19:00:00 in C
+========================================
+Trip ID: 2
+Cost: 20
+Legs:
+  - Flight ID: FL4
+    Departure: 2025-01-01 14:00:00 from C
+    Arrival: 2025-01-01 17:00:00 in A
+  - Flight ID: FL6
+    Departure: 2025-01-01 22:00:00 from A
+    Arrival: 2025-01-01 23:00:00 in C
+========================================
+Trip ID: 3
+Cost: 30
+Legs:
+  - Flight ID: FL1
+    Departure: 2025-01-01 05:45:00 from A
+    Arrival: 2025-01-01 07:00:00 in B
+  - Flight ID: FL3
+    Departure: 2025-01-01 09:30:00 from B
+    Arrival: 2025-01-01 11:00:00 in C
+  - Flight ID: FL5
+    Departure: 2025-01-01 19:00:00 from C
+    Arrival: 2025-01-01 20:00:00 in A
+========================================

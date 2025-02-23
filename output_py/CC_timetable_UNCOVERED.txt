@@ -1,0 +1,22 @@
+Timetable of Solutions:
+========================================
+Trip ID: 1
+Cost: 1010.0
+Legs:
+  - Flight ID: FL2
+    Departure: 2025-01-01 08:00:00 from D
+    Arrival: 2025-01-01 10:00:00 in C
+  - Flight ID: FL2_DH
+    Departure: 2025-01-01 15:00:00 from C
+    Arrival: 2025-01-01 17:00:00 in D
+========================================
+Trip ID: 2
+Cost: 1010.0
+Legs:
+  - Flight ID: FL10
+    Departure: 2025-01-02 09:00:00 from C
+    Arrival: 2025-01-02 11:00:00 in A
+  - Flight ID: FL10_DH
+    Departure: 2025-01-02 16:00:00 from A
+    Arrival: 2025-01-02 18:00:00 in C
+========================================

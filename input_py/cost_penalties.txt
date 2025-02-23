@@ -1,3 +1,4 @@
-Deadhead,10000
+Deadhead,1000
 FlightCost,10
 SpecificFlightCost,0 
+Uncovered,1000000
