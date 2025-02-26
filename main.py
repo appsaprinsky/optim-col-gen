@@ -6,6 +6,7 @@ from functions_py.RestrictedMasterProblem_gl import *
 from functions_py.PricingProblem_gl import *
 from functions_py.CostPenalty_gl import *
 from functions_py.LegalityChecker_gl import *
+from functions_py.PricingProblemDH_gl import *
 
 
 def process_trips(global_solution_trip, flights_in_the_new_trip):
@@ -139,8 +140,8 @@ def write_timetable_to_file(Globe_solution, output_file_path):
 
     print(f"Timetable written to {output_file_path}")
 
-def solve_Column_Generation(airline_flights, rmp, pc, global_solution_trip):
-    max_iterations = 50
+def solve_Column_Generation(airline_flights, rmp, pc, global_solution_trip, airline_flights_copy, forDH=False):
+    max_iterations = 2
     tolerance = 1e-6
     iteration = 0
 
@@ -156,7 +157,11 @@ def solve_Column_Generation(airline_flights, rmp, pc, global_solution_trip):
         for base in set(f.departure_city for f in airline_flights):
             if not is_base_is_legal(base):
                 continue
-            pp = PricingProblem(airline_flights, dual_values, base)
+            if forDH:
+                lc = IsLegal(base)
+                pp = PricingProblemDH(airline_flights, airline_flights_copy, dual_values, base, pc, lc)
+            else:
+                pp = PricingProblem(airline_flights, dual_values, base)
             new_trip = pp.solve()
 
             if new_trip and len(new_trip.legs) > 1:
@@ -170,7 +175,12 @@ def solve_Column_Generation(airline_flights, rmp, pc, global_solution_trip):
                             list_of_uncovered_trips.append(find_flights_by_id(airline_flights, legg.flight_id))
                 rest_of_trips_solution = basic_trip_solution_with_UDH(list_of_uncovered_trips, pc)
                 existing_trip_cost= calculate_total_trip_cost(rest_of_trips_solution) + calculate_total_trip_cost([new_trip]) - calculate_total_trip_cost(affected_trips_in_OG)
-                reduced_cost = pp.calculate_reduced_cost_EXTERNAL(new_trip.legs, existing_trip_cost)
+                if forDH:
+                    reduced_cost = pp.calculate_reduced_cost(new_trip.legs)
+                    print('FDFDFDDFDFDFDFDfFfffffffDFDFDFDFDfFfffffffDFDFDFDFDfFfffffffDFDFDFDFDfFfffffffFDFDfFfffffff')
+                    print(new_trip)
+                else:
+                    reduced_cost = pp.calculate_reduced_cost_EXTERNAL(new_trip.legs, existing_trip_cost)
                 print(reduced_cost)
                 print(-tolerance)
                 if reduced_cost < -tolerance:
@@ -210,7 +220,7 @@ def main():
     while len(monitor1) > 0 or Globe_iter < 10:
         Globe_iter += 1
 
-        global_solution_trip, rmp = solve_Column_Generation(airline_flights, rmp, pc, global_solution_trip)
+        global_solution_trip, rmp = solve_Column_Generation(airline_flights, rmp, pc, global_solution_trip, airline_flights_copy)
         solution_trip, rest_of_trips = find_trips_with_UDH(global_solution_trip)
         for trip in solution_trip:
             Globe_solution.append(trip)
@@ -219,8 +229,50 @@ def main():
         rmp = RestrictedMasterProblem()
         for tr in rest_of_trips:
             rmp.add_trip(tr)
-    for trip in Globe_solution:
-        print(trip)
+    # for trip in Globe_solution:
+    #     print(trip)
+
+    print('-----------------------------------Deadheads-----------------------------------')
+#######DEADHEADS
+    rmp = RestrictedMasterProblem()
+    global_solution_trip, rmp = trips_Initial_Solution(airline_flights, rmp, pc)
+    monitor1, _ = find_trips_with_UDH(global_solution_trip)
+    Globe_iter = 0
+    rest_of_trips = []
+    while len(monitor1) > 0 or Globe_iter < 2:
+        Globe_iter += 1
+
+        global_solution_trip, rmp = solve_Column_Generation(airline_flights, rmp, pc, global_solution_trip, airline_flights_copy, forDH=True)
+        solution_trip, rest_of_trips = find_trips_with_UDH(global_solution_trip)
+        for trip in solution_trip:
+            Globe_solution.append(trip)
+            global_solution_trip.remove(trip)
+        airline_flights = remove_UDH_flights_from_trips_and_generate_flight_list(rest_of_trips)
+        rmp = RestrictedMasterProblem()
+        for tr in rest_of_trips:
+            rmp.add_trip(tr)
+
+    # Focus on creating DH solution for uncovered trips
+    # rmp = RestrictedMasterProblem()
+    # for tr in rest_of_trips:
+    #     rmp.add_trip(tr)
+
+    # rmp.solve(airline_flights)
+    # dual_values = rmp.get_dual_values()
+    # print(f'Dual Values: {dual_values}')
+
+    # if not dual_values:
+    #     print("No dual values available. Stopping.")
+    #     break
+    # print(airline_flights)
+
+    # for f in airline_flights:
+    #     lc = IsLegal(f.departure_city)
+    #     pp = PricingProblemDH(airline_flights, airline_flights_copy, dual_values, f.departure_city, pc, lc)
+    #     new_trip = pp.solve()
+    #     print('FDFDFDDFDFDFDFDfFfffffffDFDFDFDFDfFfffffffDFDFDFDFDfFfffffffDFDFDFDFDfFfffffffFDFDfFfffffff')
+    #     print(new_trip)
+
     write_timetable_to_file(Globe_solution, 'output_py/CC_timetable.txt')
     if len(rest_of_trips)>0:
         write_timetable_to_file(rest_of_trips, 'output_py/CC_timetable_UNCOVERED.txt')
