@@ -13,13 +13,12 @@ std::vector<FlightLeg> loadFlights(const std::string& filename) {
     }
     
     std::string line;
-    int tem_id = 1;
     while (std::getline(file, line)) {
         std::stringstream ss(line);
         FlightLeg flight;
         std::string costStr;
         
-        // std::getline(ss, flight.flightNumber, ',');
+        std::getline(ss, flight.flightNumber, ',');
         std::getline(ss, flight.departureCity, ',');
         std::getline(ss, flight.arrivalCity, ',');
         std::getline(ss, flight.departureTime, ',');
@@ -27,8 +26,7 @@ std::vector<FlightLeg> loadFlights(const std::string& filename) {
         std::getline(ss, flight.arrivalTime, ',');
         std::getline(ss, flight.arrivalDate, ',');
         std::getline(ss, costStr, ',');
-        flight.flightNumber = "FL" + std::to_string(tem_id);
-        tem_id++;
+        
         try {
             flight.cost = std::stod(costStr);
         } catch (const std::exception& e) {

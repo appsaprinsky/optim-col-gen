@@ -141,7 +141,7 @@ def write_timetable_to_file(Globe_solution, output_file_path):
     print(f"Timetable written to {output_file_path}")
 
 def solve_Column_Generation(airline_flights, rmp, pc, global_solution_trip, airline_flights_copy, forDH=False):
-    max_iterations = 2
+    max_iterations = 100
     tolerance = 1e-6
     iteration = 0
 
@@ -217,7 +217,7 @@ def main():
     Globe_iter = 0
     Globe_solution = []
     rest_of_trips = []
-    while len(monitor1) > 0 or Globe_iter < 10:
+    while len(monitor1) > 0 or Globe_iter < 100:
         Globe_iter += 1
 
         global_solution_trip, rmp = solve_Column_Generation(airline_flights, rmp, pc, global_solution_trip, airline_flights_copy)
@@ -239,7 +239,7 @@ def main():
     monitor1, _ = find_trips_with_UDH(global_solution_trip)
     Globe_iter = 0
     rest_of_trips = []
-    while len(monitor1) > 0 or Globe_iter < 2:
+    while len(monitor1) > 0 or Globe_iter < 200:
         Globe_iter += 1
 
         global_solution_trip, rmp = solve_Column_Generation(airline_flights, rmp, pc, global_solution_trip, airline_flights_copy, forDH=True)

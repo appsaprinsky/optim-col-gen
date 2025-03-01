@@ -7,7 +7,6 @@
 #include <fstream>
 using namespace std;
 #include "flight_loader.h"
-#include <sstream>
 
 
 struct Trip {
@@ -166,113 +165,50 @@ class PricingProblem {
         }
     };
 
-class CostPenalty{
-    private:
-        std::string file_path;
-        int deadhead_cost;
-        int flight_cost;
-        int specific_flight_cost;
-        int uncovered_deadhead_cost;
 
-    public:
-        CostPenalty(std::string file_path){
-            this->file_path = file_path;
-            this->deadhead_cost = 0;
-            this->flight_cost = 0;
-            this->specific_flight_cost = 0;
-            this->uncovered_deadhead_cost = 0;
-            read_file(this->file_path);
+
+    int main() {
+        std::vector<FlightLeg> flights = loadFlights("../sam.txt");
+        printFlights(flights);
+    
+        RestrictedMasterProblem rmp(flights);
+    
+        // Add initial trips to the RMP (e.g., single-leg trips)
+        for (const auto& flight : flights) {
+            rmp.addTrip({{flight}, flight.cost, flight.departureCity});
         }
-
-        void read_file(std::string file_path){
-            std::ifstream file(file_path);
-            if (!file) {
-                std::cerr << "Error: Unable to open file " << file_path << std::endl;
-                return;
-            }
-            std::string line;
-            while (std::getline(file, line)) {
-                std::stringstream ss(line);
-                std::string costType;
-                std::getline(ss, costType, ',');
-                std::string costStr;
-                std::getline(ss, costStr, ',');
-                try {
-                    if (costType == "Deadhead"){
-                        this->deadhead_cost = std::stoi(costStr);
-                    } else if (costType == "FlightCost"){
-                        this->flight_cost = std::stoi(costStr);
-                    } else if (costType == "SpecificFlightCost"){
-                        this->specific_flight_cost = std::stoi(costStr);
-                    } else if (costType == "Uncovered"){
-                        this->uncovered_deadhead_cost = std::stoi(costStr);
-                    }
-                } catch (const std::exception& e) {
-                    std::cerr << "Error parsing cost: " << costStr << "\n";
-                    continue;
+    
+        // Column Generation Loop
+        const double tolerance = 1e-6;
+        int maxIterations = 100;
+        int iteration = 0;
+    
+        while (iteration < maxIterations) {
+            rmp.solve();
+            const auto& dualValues = rmp.getDualValues();
+    
+            // Solve the Pricing Problem for each base
+            for (const auto& base : {"A", "B", "C"}) { // Adjust based on your bases
+                PricingProblem pp(flights, dualValues, base);
+                Trip newTrip = pp.solve();
+    
+                // Calculate reduced cost for the new trip
+                double reducedCost = pp.calculateReducedCost(newTrip.legs);
+                if (reducedCost < -tolerance) {
+                    rmp.addTrip(newTrip);
                 }
             }
+    
+            iteration++;
         }
-
-        void print(){
-            std::cout << "Deadhead Cost: " << this->deadhead_cost << std::endl;
-            std::cout << "Flight Cost: " << this->flight_cost << std::endl;
-            std::cout << "Specific Flight Cost: " << this->specific_flight_cost << std::endl;
-            std::cout << "Uncovered Deadhead Cost: " << this->uncovered_deadhead_cost << std::endl;
+    
+        std::cout << "Optimal trips found!" << std::endl;
+        for (const auto& trip : rmp.getTrips()) {
+            std::cout << "Trip cost: " << trip.cost << std::endl;
+            for (const auto& leg : trip.legs) {
+                std::cout << leg.departureCity << " -> " << leg.arrivalCity << " (" << leg.flightNumber << ")" << std::endl;
+            }
         }
-};
-
-int main() {
-    // Load flights from file
-    std::vector<FlightLeg> flights = loadFlights("../input/sam.txt");
-    printFlights(flights);
-
-    CostPenalty pc("../input/cost_penalties.txt");
-    pc.print();
-
-
-    // // Load Cost from the files
-    // std::vector<FlightLeg> flights = loadFlights("../sam.txt");
-    // printFlights(flights);
-
-    // RestrictedMasterProblem rmp(flights);
-
-    // // Add initial trips to the RMP (e.g., single-leg trips)
-    // for (const auto& flight : flights) {
-    //     rmp.addTrip({{flight}, flight.cost, flight.departureCity});
-    // }
-
-    // // Column Generation Loop
-    // const double tolerance = 1e-6;
-    // int maxIterations = 100;
-    // int iteration = 0;
-
-    // while (iteration < maxIterations) {
-    //     rmp.solve();
-    //     const auto& dualValues = rmp.getDualValues();
-
-    //     // Solve the Pricing Problem for each base
-    //     for (const auto& base : {"A", "B", "C"}) { // Adjust based on your bases
-    //         PricingProblem pp(flights, dualValues, base);
-    //         Trip newTrip = pp.solve();
-
-    //         // Calculate reduced cost for the new trip
-    //         double reducedCost = pp.calculateReducedCost(newTrip.legs);
-    //         if (reducedCost < -tolerance) {
-    //             rmp.addTrip(newTrip);
-    //         }
-    //     }
-
-    //     iteration++;
-    // }
-
-    // std::cout << "Optimal trips found!" << std::endl;
-    // for (const auto& trip : rmp.getTrips()) {
-    //     std::cout << "Trip cost: " << trip.cost << std::endl;
-    //     for (const auto& leg : trip.legs) {
-    //         std::cout << leg.departureCity << " -> " << leg.arrivalCity << " (" << leg.flightNumber << ")" << std::endl;
-    //     }
-    // }
-
-    return 0;
-}
+    
+        return 0;
+    }

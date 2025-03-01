@@ -1,5 +1,4 @@
 cmake_minimum_required(VERSION 3.10)
-set(CMAKE_OSX_SYSROOT "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk")
 project(OptimColGen)
 
 # Set C++ standard
